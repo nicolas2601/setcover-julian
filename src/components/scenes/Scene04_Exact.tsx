@@ -6,7 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import SceneAnchor from '@/components/chrome/SceneAnchor';
 import { Reveal } from '@/components/motion/Reveal';
-import { results, fmtMoney, fmtTime } from '@/lib/results';
+import { results, fmtTime } from '@/lib/results';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -58,116 +58,149 @@ function buildTree(): BNode[] {
 
 const TREE_NODES = buildTree();
 
+// Step labels shown as sticky badge
+const STEP_LABELS = [
+  'INICIO — nodo raíz LP',
+  'Bifurcando x₁₄ = 0',
+  'Bifurcando x₁₄ = 1',
+  'Bifurcando x₂₀',
+  'PODADO — cota superada',
+  'ÓPTIMO — $50,123',
+  'PODADO — infactible',
+  'PODADO — dominado',
+];
+
 function BranchBoundTreeLight({ progress }: { progress: number }) {
   const visibleCount = Math.ceil(progress * TREE_NODES.length);
   const visibleNodes = TREE_NODES.slice(0, visibleCount);
+  const currentStep = Math.min(visibleCount - 1, STEP_LABELS.length - 1);
 
   return (
-    <svg
-      viewBox="0 0 100 70"
-      width="100%"
-      height="100%"
-      style={{ display: 'block', maxHeight: 480 }}
-      aria-label="Árbol Branch and Bound — tema claro"
-    >
-      {/* Edges */}
-      {visibleNodes.map((node) => {
-        if (node.parent === null) return null;
-        const parent = TREE_NODES[node.parent];
-        if (!parent) return null;
-        return (
-          <line
-            key={`e-${node.id}`}
-            x1={parent.x.toFixed(2)}
-            y1={(parent.y + 3.5).toFixed(2)}
-            x2={node.x.toFixed(2)}
-            y2={(node.y - 3.5).toFixed(2)}
-            stroke={node.pruned ? 'var(--color-steel-gray)' : 'var(--color-dark-charcoal)'}
-            strokeWidth="0.5"
-            strokeDasharray={node.pruned ? '1.5 1' : undefined}
-            opacity={node.pruned ? 0.4 : 0.7}
-          />
-        );
-      })}
-      {/* Nodes */}
-      {visibleNodes.map((node) => (
-        <g key={node.id}>
-          <circle
-            cx={node.x.toFixed(2)}
-            cy={node.y.toFixed(2)}
-            r="3.5"
-            fill={
-              node.optimal
-                ? 'var(--color-cofounder-blue)'
-                : node.pruned
-                ? 'var(--color-ash-gray)'
-                : 'var(--color-dark-charcoal)'
-            }
-            stroke={
-              node.optimal
-                ? 'var(--color-cofounder-blue)'
-                : node.pruned
-                ? 'var(--color-steel-gray)'
-                : 'var(--color-charcoal)'
-            }
-            strokeWidth="0.6"
-            opacity={node.pruned ? 0.45 : 1}
-          />
-          {node.pruned && (
-            <g>
-              <line
-                x1={(node.x - 2).toFixed(2)} y1={(node.y - 2).toFixed(2)}
-                x2={(node.x + 2).toFixed(2)} y2={(node.y + 2).toFixed(2)}
-                stroke="var(--color-light-gray)" strokeWidth="0.6" opacity="0.8"
-              />
-              <line
-                x1={(node.x + 2).toFixed(2)} y1={(node.y - 2).toFixed(2)}
-                x2={(node.x - 2).toFixed(2)} y2={(node.y + 2).toFixed(2)}
-                stroke="var(--color-light-gray)" strokeWidth="0.6" opacity="0.8"
-              />
-            </g>
-          )}
-          {node.optimal && (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <svg
+        viewBox="0 0 100 70"
+        width="100%"
+        height="100%"
+        style={{ display: 'block', maxHeight: 480 }}
+        aria-label="Árbol Branch and Bound — tema claro"
+      >
+        {/* Edges */}
+        {visibleNodes.map((node) => {
+          if (node.parent === null) return null;
+          const parent = TREE_NODES[node.parent];
+          if (!parent) return null;
+          return (
+            <line
+              key={`e-${node.id}`}
+              x1={parent.x.toFixed(2)}
+              y1={(parent.y + 3.5).toFixed(2)}
+              x2={node.x.toFixed(2)}
+              y2={(node.y - 3.5).toFixed(2)}
+              stroke={node.pruned ? 'var(--color-steel-gray)' : 'var(--color-dark-charcoal)'}
+              strokeWidth="0.5"
+              strokeDasharray={node.pruned ? '1.5 1' : undefined}
+              opacity={node.pruned ? 0.4 : 0.7}
+            />
+          );
+        })}
+        {/* Nodes */}
+        {visibleNodes.map((node) => (
+          <g key={node.id}>
             <circle
               cx={node.x.toFixed(2)}
               cy={node.y.toFixed(2)}
-              r="6"
-              fill="none"
-              stroke="var(--color-cofounder-blue)"
-              strokeWidth="0.5"
-              opacity="0.5"
+              r="3.5"
+              fill={
+                node.optimal
+                  ? 'var(--color-cofounder-blue)'
+                  : node.pruned
+                  ? 'var(--color-ash-gray)'
+                  : 'var(--color-dark-charcoal)'
+              }
+              stroke={
+                node.optimal
+                  ? 'var(--color-cofounder-blue)'
+                  : node.pruned
+                  ? 'var(--color-steel-gray)'
+                  : 'var(--color-charcoal)'
+              }
+              strokeWidth="0.6"
+              opacity={node.pruned ? 0.45 : 1}
             />
-          )}
-        </g>
-      ))}
-      {/* Legend */}
-      {progress > 0.8 && (
-        <g>
-          <circle cx="6" cy="64" r="2.5" fill="var(--color-cofounder-blue)" />
-          <text x="10" y="64" fill="var(--color-dark-charcoal)" fontSize="3.5" dominantBaseline="middle">Óptimo</text>
-          <circle cx="30" cy="64" r="2.5" fill="var(--color-ash-gray)" stroke="var(--color-steel-gray)" strokeWidth="0.5" />
-          <text x="34" y="64" fill="var(--color-slate-gray)" fontSize="3.5" dominantBaseline="middle">Podado</text>
-        </g>
+            {node.pruned && (
+              <g>
+                <line
+                  x1={(node.x - 2).toFixed(2)} y1={(node.y - 2).toFixed(2)}
+                  x2={(node.x + 2).toFixed(2)} y2={(node.y + 2).toFixed(2)}
+                  stroke="var(--color-light-gray)" strokeWidth="0.6" opacity="0.8"
+                />
+                <line
+                  x1={(node.x + 2).toFixed(2)} y1={(node.y - 2).toFixed(2)}
+                  x2={(node.x - 2).toFixed(2)} y2={(node.y + 2).toFixed(2)}
+                  stroke="var(--color-light-gray)" strokeWidth="0.6" opacity="0.8"
+                />
+              </g>
+            )}
+            {node.optimal && (
+              <circle
+                cx={node.x.toFixed(2)}
+                cy={node.y.toFixed(2)}
+                r="6"
+                fill="none"
+                stroke="var(--color-cofounder-blue)"
+                strokeWidth="0.5"
+                opacity="0.5"
+              />
+            )}
+          </g>
+        ))}
+        {/* Legend */}
+        {progress > 0.8 && (
+          <g>
+            <circle cx="6" cy="64" r="2.5" fill="var(--color-cofounder-blue)" />
+            <text x="10" y="64" fill="var(--color-dark-charcoal)" fontSize="3.5" dominantBaseline="middle">Óptimo</text>
+            <circle cx="30" cy="64" r="2.5" fill="var(--color-ash-gray)" stroke="var(--color-steel-gray)" strokeWidth="0.5" />
+            <text x="34" y="64" fill="var(--color-slate-gray)" fontSize="3.5" dominantBaseline="middle">Podado</text>
+          </g>
+        )}
+      </svg>
+
+      {/* Step counter sticky badge — RIGHT side overlay */}
+      {currentStep >= 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 0,
+            background: 'var(--color-off-white)',
+            border: '1px solid var(--color-cool-gray)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            maxWidth: 200,
+            transition: 'opacity 300ms',
+          }}
+        >
+          <div className="t-caption" style={{ color: 'var(--color-medium-gray)', marginBottom: 3, letterSpacing: '0.08em' }}>
+            PASO {currentStep + 1} / {TREE_NODES.length}
+          </div>
+          <div className="font-mono" style={{ fontSize: 11, color: 'var(--color-dark-charcoal)', lineHeight: 1.4 }}>
+            {STEP_LABELS[currentStep]}
+          </div>
+        </div>
       )}
-    </svg>
+    </div>
   );
 }
 
-// ─── Code snippet type-on — light theme ──────────────────────────────────────
-const EXACT_SNIPPET = `% Branch & Bound via CBC solver (MATLAB + Intlinprog)
-f     = costos(:);          % vector de costos n×1
-Aeq   = [];  beq = [];
-lb    = zeros(n,1);  ub = ones(n,1);
-intcon = 1:n;               % todas las variables son enteras
-
-opts = optimoptions('intlinprog', ...
+// ─── Focused code snippet — only 8 key lines ─────────────────────────────────
+const EXACT_SNIPPET_SHORT = `opts = optimoptions('intlinprog', ...
     'Display',        'iter', ...
-    'MaxTime',        300, ...   % límite 5 min
-    'RelObjThreshold', 0);       % gap 0 → óptimo garantizado
+    'MaxTime',        300, ...
+    'RelObjThreshold', 0);
 
 [x_opt, fval, flag] = intlinprog(f, intcon, -A, -b, ...
-                                  Aeq, beq, lb, ub, opts);
-sel = find(x_opt > 0.5);    % antenas seleccionadas`;
+                                  [], [], lb, ub, opts);
+sel = find(x_opt > 0.5);`;
 
 function CodeTypeOn({ code, progress }: { code: string; progress: number }) {
   const visibleChars = Math.floor(progress * code.length);
@@ -204,11 +237,12 @@ export function Scene04_Exact() {
     });
   }, { scope: outerRef });
 
-  const resultRows = [
-    { label: 'COSTO ÓPTIMO', value: fmtMoney(exacto.costo) },
-    { label: 'ANTENAS SELECCIONADAS', value: `|S| = ${exacto.sel_size}` },
-    { label: 'TIEMPO DE CÓMPUTO', value: fmtTime(exacto.tiempo_s) },
-    { label: 'GAP VS ÓPTIMO', value: '0.00%' },
+  // 4 stat cards with BIG CountUp display — replaces body paragraph
+  const statCards = [
+    { label: 'COSTO ÓPTIMO', value: exacto.costo, prefix: '$', suffix: '', decimals: 0 },
+    { label: 'ANTENAS SELECCIONADAS', value: exacto.sel_size, prefix: '|S| = ', suffix: '', decimals: 0 },
+    { label: 'TIEMPO DE CÓMPUTO', value: exacto.tiempo_s / 60, prefix: '', suffix: ' min', decimals: 1 },
+    { label: 'GAP VS ÓPTIMO', value: 0, prefix: '', suffix: '.00%', decimals: 0 },
   ];
 
   return (
@@ -232,7 +266,7 @@ export function Scene04_Exact() {
             overflow: 'hidden',
           }}
         >
-          {/* LEFT */}
+          {/* LEFT — headline + 4 big stat cards (no body paragraph) */}
           <div>
             <p
               className="t-caption tracking-meta"
@@ -244,53 +278,53 @@ export function Scene04_Exact() {
               className="font-serif t-display"
               style={{
                 color: 'var(--color-dark-charcoal)',
-                margin: '0 0 28px',
+                margin: '0 0 32px',
                 fontWeight: 400,
                 letterSpacing: '-0.022em',
               }}
             >
-              Óptimo garantizado.<br />Gap cero.
+              El precio del óptimo.
             </h2>
-            <p
-              className="t-body-lg"
-              style={{ color: 'var(--color-charcoal)', margin: '0 0 40px', maxWidth: 400, lineHeight: 1.65 }}
-            >
-              El solver CBC (MATLAB intlinprog) resuelve el ILP exactamente en 5 minutos.
-              Branch &amp; Bound particiona el espacio de búsqueda y poda ramas infeasibles
-              o dominadas, garantizando el óptimo global.
-            </p>
-            {/* Result rows as card-medium style */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {resultRows.map(({ label, value }, i) => (
+
+            {/* BIG stat cards — replaced body paragraph */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {statCards.map(({ label, value, prefix, suffix, decimals }, i) => (
                 <div
                   key={label}
                   className="card-medium"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto',
-                    gap: 16,
-                    padding: '16px 20px',
-                    marginBottom: 8,
-                    borderRadius: 12,
-                    opacity: progress > i * 0.2 ? 1 : 0.25,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    opacity: progress > i * 0.18 ? 1 : 0.2,
                     transition: 'opacity 400ms cubic-bezier(0.32,0.72,0,1)',
                   }}
                 >
-                  <span className="t-caption" style={{ color: 'var(--color-medium-gray)', fontWeight: 500 }}>
-                    {label}
-                  </span>
-                  <span
-                    className="font-serif tnum"
-                    style={{ color: 'var(--color-dark-charcoal)', fontSize: 'clamp(20px,2.2vw,28px)', fontWeight: 400 }}
+                  <div
+                    style={{
+                      fontSize: 'clamp(22px,2.8vw,36px)',
+                      color: 'var(--color-dark-charcoal)',
+                      fontFamily: 'var(--font-mono)',
+                      fontVariantNumeric: 'tabular-nums',
+                      fontWeight: 500,
+                      lineHeight: 1.1,
+                    }}
                   >
-                    {value}
-                  </span>
+                    {label === 'GAP VS ÓPTIMO'
+                      ? <span className="tnum font-mono">0.00%</span>
+                      : <CountUp to={value} prefix={prefix} suffix={suffix} decimals={decimals} />
+                    }
+                  </div>
+                  <div className="div-accent" />
+                  <p className="t-caption" style={{ color: 'var(--color-medium-gray)', margin: 0, fontWeight: 500 }}>
+                    {label}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* RIGHT — tree */}
+          {/* RIGHT — B&B tree 60% width with step counter badge */}
           <div
             style={{
               height: '100%',
@@ -305,7 +339,7 @@ export function Scene04_Exact() {
         </div>
       </div>
 
-      {/* Code block below pin */}
+      {/* Code block below pin — 8 focal lines */}
       <div
         style={{
           background: 'var(--color-off-white)',
@@ -319,10 +353,10 @@ export function Scene04_Exact() {
               className="t-caption tracking-meta"
               style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}
             >
-              IMPLEMENTACIÓN MATLAB
+              IMPLEMENTACIÓN MATLAB — LÍNEAS CLAVE
             </p>
           </Reveal>
-          <CodeTypeOn code={EXACT_SNIPPET} progress={Math.min(1, (progress - 0.6) / 0.4)} />
+          <CodeTypeOn code={EXACT_SNIPPET_SHORT} progress={Math.min(1, (progress - 0.6) / 0.4)} />
         </div>
       </div>
     </SceneAnchor>

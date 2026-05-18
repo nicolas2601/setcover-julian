@@ -82,8 +82,8 @@ function ModelILP() {
   );
 }
 
-// ─── Numbered rule row — serif numeral ───────────────────────────────────────
-function RuleRow({ numeral, title, body }: { numeral: string; title: string; body: string }) {
+// ─── Compact rule row — math expression + 1-sentence purpose ─────────────────
+function RuleRow({ numeral, title, math, body }: { numeral: string; title: string; math: string; body: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const el = ref.current; if (!el) return;
@@ -103,8 +103,8 @@ function RuleRow({ numeral, title, body }: { numeral: string; title: string; bod
       style={{
         display: 'grid',
         gridTemplateColumns: 'auto 1fr',
-        gap: 'clamp(24px,3vw,56px)',
-        padding: 'clamp(32px,4vh,56px) 0',
+        gap: 'clamp(20px,3vw,48px)',
+        padding: 'clamp(24px,3vh,40px) 0',
         borderBottom: '1px solid var(--color-cool-gray)',
         cursor: 'default',
         transition: 'transform 320ms cubic-bezier(0.32,0.72,0,1)',
@@ -116,7 +116,7 @@ function RuleRow({ numeral, title, body }: { numeral: string; title: string; bod
         aria-hidden="true"
         className="font-serif"
         style={{
-          fontSize: 'clamp(64px, 8vw, 96px)',
+          fontSize: 'clamp(56px,7vw,80px)',
           fontWeight: 400,
           lineHeight: 0.88,
           color: 'var(--color-cool-gray)',
@@ -127,16 +127,20 @@ function RuleRow({ numeral, title, body }: { numeral: string; title: string; bod
       >
         {numeral}
       </div>
-      {/* Content */}
-      <div style={{ paddingTop: 'clamp(8px,1vh,16px)' }}>
-        <div className="div-accent" style={{ marginBottom: 16 }} />
+      {/* Content — math expression + 1-sentence body */}
+      <div style={{ paddingTop: 'clamp(6px,1vh,12px)' }}>
+        <div className="div-accent" style={{ marginBottom: 12 }} />
         <h3
           className="font-serif t-h-sm"
-          style={{ color: 'var(--color-dark-charcoal)', margin: '0 0 12px', fontWeight: 400 }}
+          style={{ color: 'var(--color-dark-charcoal)', margin: '0 0 8px', fontWeight: 400 }}
         >
           {title}
         </h3>
-        <p className="t-body-lg" style={{ color: 'var(--color-charcoal)', margin: 0, maxWidth: 560, lineHeight: 1.65 }}>
+        {/* Math expression — compact */}
+        <div style={{ marginBottom: 8, fontSize: '0.9em' }}>
+          <InlineMath math={math} />
+        </div>
+        <p className="t-body" style={{ color: 'var(--color-slate-gray)', margin: 0, maxWidth: 500, lineHeight: 1.55 }}>
           {body}
         </p>
       </div>
@@ -165,7 +169,7 @@ export function Scene03_Formulation() {
             className="font-serif t-display-xl"
             style={{
               color: 'var(--color-dark-charcoal)',
-              margin: '0 0 clamp(48px,7vh,96px)',
+              margin: '0 0 clamp(40px,6vh,80px)',
               maxWidth: 900,
               fontWeight: 400,
               letterSpacing: '-0.025em',
@@ -175,6 +179,7 @@ export function Scene03_Formulation() {
           </h2>
         </Reveal>
 
+        {/* 1-line intro + ILP card */}
         <div
           style={{
             display: 'grid',
@@ -185,10 +190,9 @@ export function Scene03_Formulation() {
           }}
         >
           <Reveal delay={0.1}>
-            <p className="t-body-lg" style={{ color: 'var(--color-charcoal)', margin: '0 0 24px', lineHeight: 1.7 }}>
-              El Weighted Set Cover es un problema de Programación Lineal Entera (ILP).
-              Cada antena <InlineMath math="j" /> tiene un costo <InlineMath math="c_j" /> y
-              cubre un subconjunto de clientes. Se busca la cobertura completa al menor costo posible.
+            {/* Cut to 1 line — was a full paragraph */}
+            <p className="t-body-lg" style={{ color: 'var(--color-charcoal)', margin: 0, lineHeight: 1.65 }}>
+              ILP binario con restricciones de cobertura.
             </p>
           </Reveal>
           <Reveal delay={0.15} variant="scale">
@@ -196,23 +200,27 @@ export function Scene03_Formulation() {
           </Reveal>
         </div>
 
-        <div className="div-cool" style={{ marginBottom: 'clamp(32px,5vh,64px)' }} />
+        <div className="div-cool" style={{ marginBottom: 'clamp(24px,4vh,48px)' }} />
 
+        {/* 3 compact rule rows — math expression + 1-sentence body */}
         {[
           {
             numeral: 'I',
             title: 'Variables binarias',
-            body: 'xⱼ ∈ {0, 1} para cada antena j ∈ N. Si xⱼ = 1, la antena j se selecciona y su costo se suma. El espacio de búsqueda tiene 2⁵⁰⁰ combinaciones posibles.',
+            math: 'x_j \\in \\{0, 1\\},\\; j \\in N',
+            body: 'Si xⱼ = 1, la antena j se activa. El espacio de búsqueda tiene 2⁵⁰⁰ combinaciones.',
           },
           {
             numeral: 'II',
             title: 'Función objetivo',
-            body: 'Minimizar el costo total Σ cⱼ · xⱼ. Los costos viven en el rango [$2,000 — $3,998]. Seleccionar todas costaría $1,516,821 — la solución óptima lo hace en $50,123.',
+            math: '\\min\\sum_{j} c_j x_j,\\; c_j \\in [\\$2{,}000,\\,\\$3{,}998]',
+            body: 'Minimizar el costo total. La solución óptima lo hace en $50,123 vs $1,516,821 si se seleccionaran todas.',
           },
           {
             numeral: 'III',
             title: 'Restricciones de cobertura',
-            body: 'Para cada cliente i ∈ M, la suma de antenas que lo cubren debe ser ≥ 1. Las 500 restricciones garantizan cobertura universal. Ningún cliente queda desatendido.',
+            math: '\\sum_{j \\in S_i} x_j \\geq 1,\\; \\forall i \\in M',
+            body: '500 restricciones garantizan cobertura universal. Ningún cliente queda desatendido.',
           },
         ].map((rule) => (
           <Reveal key={rule.numeral} delay={0.08}>

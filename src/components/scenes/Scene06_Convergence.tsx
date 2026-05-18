@@ -7,27 +7,20 @@ import { results, fmtMoney, fmtPct } from '@/lib/results';
 
 const ConvergenceChart = dynamic(() => import('@/components/charts/ConvergenceChart'), { ssr: false });
 
-const ANNOTATION_CARDS = [
-  {
-    num: '01',
-    title: 'Caída rápida',
-    body: 'En las primeras 50 generaciones el costo cae de ~$65,800 a ~$52,000. La diversidad inicial del GA permite saltos grandes.',
-  },
-  {
-    num: '02',
-    title: 'Plateau de explotación',
-    body: 'Entre gen 100–400 la mejora es marginal. El algoritmo explota vecindades conocidas. La mutación adaptativa mantiene diversidad.',
-  },
-  {
-    num: '03',
-    title: 'Solución final',
-    body: `$${Math.round(results.ga_refinado.costo).toLocaleString('es-CO')} en gen 500. Gap de 0.84% respecto al óptimo exacto de $${Math.round(results.exacto.costo).toLocaleString('es-CO')}.`,
-  },
+// ─── 3 KPI cards below chart ─────────────────────────────────────────────────
+const KPI_CARDS = [
+  { label: 'ESTABILIZA EN', value: 'GEN 200–250', sub: 'plateau de explotación' },
+  { label: 'GAP FINAL', value: '0.844%', sub: 'vs óptimo exacto $50,123' },
+  { label: 'MEJOR SEMILLA', value: '#13', sub: 'de 5 corridas independientes' },
 ];
 
-// ─── Scene 06 — LIGHT ────────────────────────────────────────────────────────
+// ─── Scene 06 — LIGHT — chart-first ──────────────────────────────────────────
 export function Scene06_Convergence() {
-  const { ga_refinado, ga, exacto } = results;
+  const { ga, exacto } = results;
+
+  const mu = ga.media_5_corridas ?? 0;
+  const sigma = ga.std_5_corridas ?? 0;
+  const cv = mu > 0 ? (sigma / mu) * 100 : 0;
 
   return (
     <SceneAnchor
@@ -44,12 +37,13 @@ export function Scene06_Convergence() {
           </p>
         </Reveal>
 
+        {/* Title + 1-line body side by side */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '7fr 5fr',
-            gap: 'clamp(32px,5vw,80px)',
-            marginBottom: 'clamp(48px,7vh,96px)',
+            gap: 'clamp(24px,4vw,64px)',
+            marginBottom: 'clamp(32px,5vh,64px)',
             alignItems: 'end',
           }}
         >
@@ -63,64 +57,64 @@ export function Scene06_Convergence() {
                 letterSpacing: '-0.025em',
               }}
             >
-              El GA converge.
+              Convergencia.
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
-            <p className="t-body-lg" style={{ color: 'var(--color-charcoal)', margin: 0, maxWidth: 440, lineHeight: 1.65 }}>
-              500 generaciones de evolución. El mejor individuo cae de $65,800 inicial
-              hasta $50,546 — a 0.84% del óptimo exacto garantizado.
+            {/* Cut to 1 line — was 2 sentences */}
+            <p className="t-body" style={{ color: 'var(--color-slate-gray)', margin: 0, lineHeight: 1.6 }}>
+              500 generaciones, caída de $65,800 a $50,546. Gap final: 0.84%.
             </p>
           </Reveal>
         </div>
 
-        {/* Chart — wrapped in card-elevated for light theme */}
+        {/* Chart — full-bleed 100% width */}
         <Reveal variant="scale" delay={0.05}>
-          <div className="card-elevated" style={{ padding: 'clamp(20px,3vw,36px)' }}>
+          <div
+            className="card-elevated"
+            style={{ padding: 'clamp(16px,2.5vw,32px)', width: '100%' }}
+          >
             <ConvergenceChart />
           </div>
         </Reveal>
 
-        <div className="div-cool" style={{ margin: 'clamp(40px,6vh,80px) 0' }} />
+        <div className="div-cool" style={{ margin: 'clamp(32px,5vh,64px) 0' }} />
 
-        {/* 3 annotation cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(16px,3vw,40px)' }}>
-          {ANNOTATION_CARDS.map((card) => (
-            <Reveal key={card.num} delay={0.05}>
-              <div className="card-medium" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* 3 KPI cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(12px,2vw,28px)', marginBottom: 'clamp(32px,5vh,64px)' }}>
+          {KPI_CARDS.map((card) => (
+            <Reveal key={card.label} delay={0.05}>
+              <div className="card-medium" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div
                   className="font-mono tnum"
-                  style={{ fontSize: 11, color: 'var(--color-medium-gray)', letterSpacing: '0.12em' }}
+                  style={{
+                    fontSize: 'clamp(20px,2.5vw,32px)',
+                    color: 'var(--color-cofounder-blue)',
+                    fontWeight: 500,
+                    lineHeight: 1.1,
+                  }}
                 >
-                  {card.num}
+                  {card.value}
                 </div>
                 <div className="div-accent" />
-                <h3
-                  className="font-serif t-h-sm"
-                  style={{ color: 'var(--color-dark-charcoal)', margin: 0, fontWeight: 400 }}
-                >
-                  {card.title}
-                </h3>
-                <p className="t-body" style={{ color: 'var(--color-charcoal)', margin: 0, lineHeight: 1.6 }}>
-                  {card.body}
+                <p className="t-caption" style={{ color: 'var(--color-charcoal)', margin: 0, fontWeight: 500 }}>
+                  {card.label}
+                </p>
+                <p className="t-caption" style={{ color: 'var(--color-medium-gray)', margin: 0 }}>
+                  {card.sub}
                 </p>
               </div>
             </Reveal>
           ))}
         </div>
 
-        <div className="div-cool" style={{ margin: 'clamp(40px,6vh,80px) 0' }} />
-
-        {/* μ / σ / CV big display — card-medium grid */}
+        {/* μ / σ / CV big display */}
+        <div className="div-cool" style={{ marginBottom: 'clamp(24px,4vh,48px)' }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {[
-            { sym: 'μ', label: 'MEDIA 5 CORRIDAS', value: fmtMoney(ga.media_5_corridas ?? 0) },
-            { sym: 'σ', label: 'DESVIACIÓN ESTÁNDAR', value: fmtMoney(ga.std_5_corridas ?? 0) },
-            {
-              sym: 'CV',
-              label: 'COEF. VARIACIÓN',
-              value: fmtPct(((ga.std_5_corridas ?? 0) / (ga.media_5_corridas ?? 1)) * 100),
-            },
+            { sym: 'μ', label: 'MEDIA 5 CORRIDAS', value: fmtMoney(mu) },
+            { sym: 'σ', label: 'DESVIACIÓN ESTÁNDAR', value: fmtMoney(sigma) },
+            { sym: 'CV', label: 'COEF. VARIACIÓN', value: fmtPct(cv) },
           ].map(({ sym, label, value }) => (
             <Reveal key={sym}>
               <div

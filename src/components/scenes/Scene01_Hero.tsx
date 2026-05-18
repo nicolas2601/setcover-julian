@@ -174,31 +174,28 @@ export function Scene01_Hero() {
           ref={headlineRef}
           className="font-serif"
           style={{
-            fontSize: 'clamp(56px, 8vw, 112px)',
+            fontSize: 'clamp(64px, 9vw, 128px)',
             fontWeight: 400,
-            lineHeight: 1.02,
-            letterSpacing: '-0.025em',
+            lineHeight: 0.98,
+            letterSpacing: '-0.03em',
             color: 'var(--color-canvas-white)',
-            maxWidth: '18ch',
+            maxWidth: '14ch',
             margin: 0,
           }}
         >
-          <span className="hero-word" style={{ display: 'inline-block' }}>Optimizar&nbsp;</span>
-          <span className="hero-word" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-            2
-            <sup
-              style={{
-                fontSize: '0.42em',
-                lineHeight: 1,
-                verticalAlign: 'super',
-                color: 'var(--color-action-azure)',
-                fontWeight: 500,
-              }}
-            >
-              500
-            </sup>
+          <span className="hero-word" style={{ display: 'inline-block' }}>Cada</span>{' '}
+          <span className="hero-word" style={{ display: 'inline-block' }}>elección</span>
+          <br />
+          <span
+            className="hero-word"
+            style={{
+              display: 'inline-block',
+              fontStyle: 'italic',
+              color: 'var(--color-action-azure)',
+            }}
+          >
+            importa.
           </span>
-          <span className="hero-word" style={{ display: 'inline-block' }}>&nbsp;combinaciones</span>
         </h1>
 
         {/* Subtext — sans */}
@@ -212,8 +209,7 @@ export function Scene01_Hero() {
             lineHeight: 1.45,
           }}
         >
-          Cómo encontrar el subconjunto más barato de antenas que cubra a todos
-          los clientes — sin enumerar el universo.
+          500 antenas, 500 clientes, 2<sup style={{ fontSize: '0.6em', verticalAlign: 'super' }}>500</sup> combinaciones — pero solo una es óptima.
         </p>
 
         {/* CTAs */}

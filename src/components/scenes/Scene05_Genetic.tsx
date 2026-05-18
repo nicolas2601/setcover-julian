@@ -16,7 +16,16 @@ const GeneticPopulationR3F = dynamic(
   { ssr: false },
 );
 
-// ─── CountUp ─────────────────────────────────────────────────────────────────
+// ─── CountUp — used for live cost counter ─────────────────────────────────────
+function CountUpLive({ from, to, progress, prefix = '' }: { from: number; to: number; progress: number; prefix?: string }) {
+  const value = Math.round(from + (to - from) * Math.min(1, progress * 2));
+  return (
+    <span className="tnum font-mono">
+      {prefix}{value.toLocaleString('es-CO')}
+    </span>
+  );
+}
+
 function CountUp({ to, prefix = '', suffix = '', decimals = 0 }: { to: number; prefix?: string; suffix?: string; decimals?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const triggered = useRef(false);
@@ -46,47 +55,29 @@ function CountUp({ to, prefix = '', suffix = '', decimals = 0 }: { to: number; p
   return <span ref={ref} className="tnum font-mono">{prefix}{to.toFixed(decimals)}{suffix}</span>;
 }
 
-// ─── GA ingredient cards — translucent overlay for dark section ───────────────
-const GA_INGREDIENTS = [
-  { id: 'pop', label: 'POBLACIÓN', value: '150', desc: 'cromosomas por generación' },
-  { id: 'gen', label: 'GENERACIONES', value: '500', desc: 'iteraciones del ciclo evolutivo' },
-  { id: 'cross', label: 'CRUCE', value: '90%', desc: 'probabilidad de recombinación' },
-  { id: 'mut', label: 'MUTACIÓN', value: '3%→0.5%', desc: 'mutación adaptativa decreciente' },
-  { id: 'elit', label: 'ELITISMO', value: '3', desc: 'mejores individuos preservados' },
-  { id: 'sel', label: 'SELECCIÓN', value: 'Torneo', desc: 'presión selectiva controlada' },
-  { id: 'fit', label: 'FITNESS', value: 'Costo', desc: 'objetivo: minimizar ∑ cⱼ xⱼ' },
-  { id: 'seed', label: 'SEMILLA', value: '13', desc: 'mejor corrida de 5 experimentos' },
+// ─── 4 GA ingredient cards (reduced from 8) — bigger cards ───────────────────
+const GA_INGREDIENTS_4 = [
+  { id: 'pop',   label: 'POP',   value: '150',      desc: 'cromosomas por generación' },
+  { id: 'gen',   label: 'GEN',   value: '500',      desc: 'iteraciones evolutivas' },
+  { id: 'cross', label: 'CROSS', value: '90%',      desc: 'probabilidad de cruce' },
+  { id: 'mut',   label: 'MUT',   value: '3%→0.5%',  desc: 'mutación adaptativa' },
 ];
 
-const GA_SNIPPET = `% Algoritmo Genético — ciclo principal (MATLAB)
-for gen = 1:max_gen
-    % Evaluación fitness
+// ─── 6-line focused code snippet ─────────────────────────────────────────────
+const GA_SNIPPET_SHORT = `for gen = 1:max_gen
     fitness = arrayfun(@(i) evalFitness(pop(i,:), costos, A, b), 1:pop_size);
-
-    % Elitismo — preservar los mejores
     [~, idx] = sort(fitness);
     nuevaPop(1:elitism,:) = pop(idx(1:elitism),:);
-
-    % Selección por torneo + cruce + mutación
-    for k = elitism+1:2:pop_size
-        p1 = torneo(pop, fitness, t_size);
-        p2 = torneo(pop, fitness, t_size);
-        [h1, h2] = cruce(p1, p2, p_cross);
-        nuevaPop(k,:)   = mutar(h1, p_mut_actual);
-        nuevaPop(k+1,:) = mutar(h2, p_mut_actual);
-    end
-
-    pop = nuevaPop;
-    p_mut_actual = p_mut_ini * exp(-lambda * gen); % mutación adaptativa
-    mejor(gen) = min(fitness);
+    % Torneo + cruce + mutación adaptativa
+    p_mut_actual = p_mut_ini * exp(-lambda * gen);
 end`;
 
 function IngredientCard({
   item, stackIndex, progress,
-}: { item: typeof GA_INGREDIENTS[0]; stackIndex: number; progress: number }) {
-  const threshold = stackIndex / GA_INGREDIENTS.length;
+}: { item: typeof GA_INGREDIENTS_4[0]; stackIndex: number; progress: number }) {
+  const threshold = stackIndex / GA_INGREDIENTS_4.length;
   const visible = progress > threshold;
-  const offset = Math.max(0, 1 - (progress - threshold) * GA_INGREDIENTS.length) * 40;
+  const offset = Math.max(0, 1 - (progress - threshold) * GA_INGREDIENTS_4.length) * 36;
   return (
     <div
       className="card-hero-overlay"
@@ -96,23 +87,23 @@ function IngredientCard({
         transition: 'opacity 400ms cubic-bezier(0.32,0.72,0,1), transform 500ms cubic-bezier(0.32,0.72,0,1)',
         display: 'flex',
         alignItems: 'center',
-        gap: 20,
-        padding: '14px 20px',
+        gap: 24,
+        padding: '20px 28px',
       }}
     >
-      <div style={{ minWidth: 72 }}>
+      <div style={{ minWidth: 80 }}>
         <div
           className="font-mono tnum"
-          style={{ fontSize: 18, color: 'var(--color-action-azure)', fontWeight: 500 }}
+          style={{ fontSize: 22, color: 'var(--color-action-azure)', fontWeight: 500, lineHeight: 1.2 }}
         >
           {item.value}
         </div>
       </div>
       <div>
-        <div className="t-caption tracking-meta" style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>
+        <div className="t-caption tracking-meta" style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
           {item.label}
         </div>
-        <div className="t-body" style={{ color: 'rgba(255,255,255,0.8)' }}>{item.desc}</div>
+        <div className="t-body" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>{item.desc}</div>
       </div>
     </div>
   );
@@ -134,13 +125,6 @@ export function Scene05_Genetic() {
       onUpdate: (self) => setProgress(self.progress),
     });
   }, { scope: outerRef });
-
-  const resultRows = [
-    { label: 'MEJOR COSTO (GA)', value: fmtMoney(ga_refinado.costo) },
-    { label: 'ANTENAS SELECCIONADAS', value: `|S| = ${ga_refinado.sel_size}` },
-    { label: 'TIEMPO DE CÓMPUTO', value: fmtTime(ga_refinado.tiempo_s) },
-    { label: 'GAP vs EXACTO', value: fmtPct(ga_refinado.gap_vs_exacto_pct) },
-  ];
 
   return (
     <SceneAnchor
@@ -164,17 +148,17 @@ export function Scene05_Genetic() {
             alignItems: 'center',
           }}
         >
-          {/* WebGL population background */}
+          {/* WebGL population — 60% width covers right column naturally */}
           <div
             aria-hidden="true"
-            style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.45, pointerEvents: 'none' }}
+            style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.5, pointerEvents: 'none' }}
           >
             <div style={{ width: '100%', height: '100%' }}>
               <GeneticPopulationR3F progress={progress} className="w-full h-full" />
             </div>
           </div>
 
-          {/* LEFT — text content */}
+          {/* LEFT — headline + live cost counter (no body paragraph) */}
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p
               className="t-caption tracking-meta"
@@ -187,72 +171,73 @@ export function Scene05_Genetic() {
               style={{
                 color: 'var(--color-canvas-white)',
                 margin: '0 0 28px',
-                maxWidth: '11ch',
+                maxWidth: '14ch',
                 lineHeight: 1,
                 fontWeight: 400,
                 letterSpacing: '-0.022em',
               }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.04em', whiteSpace: 'nowrap' }}>
-                Evolución&nbsp;en&nbsp;2
-                <span style={{ fontSize: '0.46em', lineHeight: 1, color: 'var(--color-action-azure)', marginTop: '0.06em', fontWeight: 500 }}>
-                  500
-                </span>
-              </span>
+              Evolución,
               <br />
-              dimensiones.
+              <em style={{ fontStyle: 'italic', color: 'var(--color-action-azure)' }}>
+                no enumeración.
+              </em>
             </h2>
-            <p
-              className="t-body-lg"
-              style={{ color: 'rgba(255,255,255,0.75)', margin: '0 0 40px', maxWidth: 400, lineHeight: 1.65 }}
-            >
-              150 cromosomas binarios de 500 bits compiten durante 500 generaciones.
-              Selección por torneo, cruce de un punto, mutación adaptativa.
-              Converge sin garantía de optimalidad — pero en 44 segundos.
-            </p>
-            {/* Result rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {resultRows.map(({ label, value }, i) => (
-                <div
-                  key={label}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto',
-                    gap: 16,
-                    padding: '14px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                    opacity: progress > i * 0.2 ? 1 : 0.2,
-                    transition: 'opacity 400ms cubic-bezier(0.32,0.72,0,1)',
-                  }}
-                >
-                  <span className="t-caption" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</span>
-                  <span className="font-mono tnum t-h-sm" style={{ color: 'var(--color-canvas-white)' }}>{value}</span>
-                </div>
-              ))}
-            </div>
+
             {/* Generation counter HUD */}
-            <div style={{ marginTop: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 24 }}>
               <span className="t-caption" style={{ color: 'rgba(255,255,255,0.4)' }}>GEN</span>
               <span
                 className="font-mono tnum"
-                style={{ fontSize: 28, color: 'var(--color-action-azure)', fontWeight: 500 }}
+                style={{ fontSize: 40, color: 'var(--color-action-azure)', fontWeight: 500, lineHeight: 1 }}
               >
                 {Math.round(progress * 500).toString().padStart(3, '0')}
               </span>
               <span className="t-caption" style={{ color: 'rgba(255,255,255,0.4)' }}>/ 500</span>
             </div>
+
+            {/* Live "best cost" counter animating as user scrolls */}
+            <div
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10,
+                padding: '16px 20px',
+                marginBottom: 28,
+              }}
+            >
+              <div className="t-caption" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+                MEJOR COSTO ACTUAL
+              </div>
+              <div style={{ fontSize: 'clamp(24px,3.2vw,40px)', color: 'var(--color-canvas-white)', fontWeight: 500 }}>
+                $<CountUpLive from={65800} to={50546} progress={progress} />
+              </div>
+            </div>
+
+            {/* Quick metrics row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'TIEMPO', value: fmtTime(ga_refinado.tiempo_s) },
+                { label: 'GAP vs ILP', value: fmtPct(ga_refinado.gap_vs_exacto_pct) },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 10 }}>
+                  <div className="t-caption" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{label}</div>
+                  <div className="font-mono tnum" style={{ fontSize: 18, color: 'var(--color-canvas-white)' }}>{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* RIGHT — ingredient cards */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {GA_INGREDIENTS.map((item, i) => (
+          {/* RIGHT — 4 bigger ingredient cards */}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {GA_INGREDIENTS_4.map((item, i) => (
               <IngredientCard key={item.id} item={item} stackIndex={i} progress={progress} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Code block below pin — still dark */}
+      {/* Code block below pin — 6 focused lines */}
       <div style={{ padding: 'var(--section-gap) 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="container-max" style={{ padding: '0 var(--gutter)' }}>
           <Reveal>
@@ -260,11 +245,11 @@ export function Scene05_Genetic() {
               className="t-caption tracking-meta"
               style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}
             >
-              CICLO EVOLUTIVO — MATLAB
+              CICLO EVOLUTIVO — MATLAB (LÍNEAS CLAVE)
             </p>
           </Reveal>
           <pre className="hljs" style={{ overflow: 'auto', borderRadius: 12 }}>
-            <code>{GA_SNIPPET}</code>
+            <code>{GA_SNIPPET_SHORT}</code>
           </pre>
         </div>
       </div>

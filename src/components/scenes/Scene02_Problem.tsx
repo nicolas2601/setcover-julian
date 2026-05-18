@@ -1,14 +1,48 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import SceneAnchor from '@/components/chrome/SceneAnchor';
 import { Reveal } from '@/components/motion/Reveal';
-import { results, fmtPct, fmtMoney, fmtInt } from '@/lib/results';
+import { results, fmtPct, fmtMoney } from '@/lib/results';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Graceful fallback if MatrixHeatmap not yet available
+let MatrixHeatmap: React.ComponentType<{ progress?: number }>;
+try {
+  MatrixHeatmap = dynamic(() => import('@/components/visual/MatrixHeatmap').catch(() =>
+    Promise.resolve({ default: ({ progress }: { progress?: number }) => (
+      <div
+        style={{
+          width: '100%',
+          height: 340,
+          background: 'var(--color-off-white)',
+          borderRadius: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1px dashed var(--color-cool-gray)',
+        }}
+      >
+        <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>
+          MatrixHeatmap — {Math.round((progress ?? 0) * 100)}%
+        </span>
+      </div>
+    ) })
+  ), { ssr: false });
+} catch {
+  MatrixHeatmap = ({ progress }: { progress?: number }) => (
+    <div style={{ width: '100%', height: 340, background: 'var(--color-off-white)', borderRadius: 12 }}>
+      <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>
+        {Math.round((progress ?? 0) * 100)}%
+      </span>
+    </div>
+  );
+}
 
 // ─── CountUp ─────────────────────────────────────────────────────────────────
 function CountUp({
@@ -50,60 +84,6 @@ function CountUp({
     <span ref={ref} className="tnum font-mono">
       {prefix}{to.toFixed(decimals)}{suffix}
     </span>
-  );
-}
-
-// ─── Matrix grid visualization — GIC light theme colors ─────────────────────
-const GRID_SIZE = 30;
-const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
-
-function MatrixGridSVGLight({ progress }: { progress: number }) {
-  const order = useRef<number[]>([]);
-  if (order.current.length === 0) {
-    let s = 42 >>> 0;
-    const lcg = () => { s = Math.imul(1664525, s) + 1013904223 >>> 0; return s / 0xffffffff; };
-    const arr = Array.from({ length: TOTAL_CELLS }, (_: unknown, i: number) => i);
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(lcg() * (i + 1));
-      [arr[i], arr[j]] = [arr[j]!, arr[i]!];
-    }
-    order.current = arr;
-  }
-
-  const filled = Math.round(progress * TOTAL_CELLS * results.eda.densidad_matriz);
-  const active = new Set(order.current.slice(0, filled));
-  const cellSize = 12;
-  const gap = 2;
-  const stride = cellSize + gap;
-  const svgSize = GRID_SIZE * stride - gap;
-
-  return (
-    <svg
-      viewBox={`0 0 ${svgSize} ${svgSize}`}
-      width="100%"
-      height="100%"
-      aria-label="Matriz de cobertura 500×500 (representación 30×30)"
-      style={{ maxWidth: 420, display: 'block' }}
-    >
-      {Array.from({ length: TOTAL_CELLS }, (_: unknown, idx: number) => {
-        const row = Math.floor(idx / GRID_SIZE);
-        const col = idx % GRID_SIZE;
-        const isActive = active.has(idx);
-        // GIC: active = cofounder-blue, inactive = cool-gray
-        return (
-          <rect
-            key={idx}
-            x={(col * stride).toFixed(2)}
-            y={(row * stride).toFixed(2)}
-            width={cellSize}
-            height={cellSize}
-            fill={isActive ? 'var(--color-cofounder-blue)' : 'var(--color-cool-gray)'}
-            opacity={isActive ? 0.85 : 0.4}
-            rx="1"
-          />
-        );
-      })}
-    </svg>
   );
 }
 
@@ -155,60 +135,53 @@ export function Scene02_Problem() {
       ariaLabel="El problema — Set Cover 500×500"
       style={{ background: 'var(--color-canvas-white)' }}
     >
-      <div ref={outerRef} style={{ position: 'relative', height: '200vh' }}>
+      <div ref={outerRef} style={{ position: 'relative', height: '220vh' }}>
         <div
           style={{
             position: 'sticky',
             top: 0,
             height: '100vh',
-            display: 'grid',
-            gridTemplateColumns: '5fr 7fr',
-            gap: 'var(--gutter)',
+            display: 'flex',
+            flexDirection: 'column',
             padding: '0 var(--gutter)',
-            alignItems: 'center',
+            justifyContent: 'center',
             overflow: 'hidden',
+            gap: 32,
           }}
         >
-          {/* LEFT — editorial text */}
-          <div>
-            <p
-              className="t-caption tracking-meta"
-              style={{ color: 'var(--color-medium-gray)', marginBottom: 20 }}
-            >
-              02 · EL PROBLEMA
-            </p>
-            <h2
-              className="font-serif t-h-lg"
-              style={{
-                color: 'var(--color-dark-charcoal)',
-                margin: '0 0 28px',
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Cada cliente exige cobertura.
-            </h2>
-            <p
-              className="t-body-lg"
-              style={{ color: 'var(--color-charcoal)', margin: '0 0 16px', maxWidth: 440, lineHeight: 1.65 }}
-            >
-              Dada una matriz binaria A de {eda.n_clientes} clientes × {eda.n_antenas} antenas,
-              seleccionar el subconjunto de antenas de costo mínimo tal que cada fila
-              tenga al menos un uno activo.
-            </p>
-            <p
-              className="t-body"
-              style={{ color: 'var(--color-slate-gray)', margin: '0 0 32px', maxWidth: 420, lineHeight: 1.6 }}
-            >
-              Con {eda.n_antenas} variables binarias, el espacio de búsqueda es 2
-              <sup style={{ fontSize: '0.7em' }}>{eda.n_antenas}</sup> —
-              un número mayor que átomos en el universo observable.
-            </p>
+          {/* Top row — headline + punch line */}
+          <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: 'var(--gutter)', alignItems: 'end' }}>
+            <div>
+              <p
+                className="t-caption tracking-meta"
+                style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}
+              >
+                02 · EL PROBLEMA
+              </p>
+              <h2
+                className="font-serif t-h-lg"
+                style={{
+                  color: 'var(--color-dark-charcoal)',
+                  margin: '0 0 16px',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Quinientas decisiones binarias.
+              </h2>
+              {/* Single punch line — was 2 paragraphs */}
+              <p
+                className="t-body"
+                style={{ color: 'var(--color-slate-gray)', margin: 0, maxWidth: 380, lineHeight: 1.6 }}
+              >
+                Cada antena cubre un subconjunto. Encontrar la mínima cobertura es NP-difícil.
+              </p>
+            </div>
             {/* Progress scroll indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
               <div
                 style={{
-                  width: 140,
+                  width: 120,
                   height: 2,
                   background: 'var(--color-cool-gray)',
                   borderRadius: 1,
@@ -226,36 +199,26 @@ export function Scene02_Problem() {
                 />
               </div>
               <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>
-                {Math.round(progress * TOTAL_CELLS * eda.densidad_matriz)} activas
+                A ∈ &#123;0,1&#125;<sup style={{ fontSize: '0.7em' }}>500×500</sup>
               </span>
             </div>
           </div>
 
-          {/* RIGHT — matrix card */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <div className="card-elevated" style={{ width: '100%', maxWidth: 460 }}>
-              <p
-                className="t-caption tracking-meta"
-                style={{ color: 'var(--color-medium-gray)', marginBottom: 16, textAlign: 'right' }}
-              >
-                A ∈ &#123;0,1&#125;
-                <sup style={{ fontSize: '0.7em' }}>500×500</sup>
-                {' '}· DENSIDAD {fmtPct(eda.densidad_matriz * 100)}
-              </p>
-              <MatrixGridSVGLight progress={progress} />
-              <div className="div-cool" style={{ marginTop: 16 }} />
-              <p
-                className="t-caption"
-                style={{ color: 'var(--color-medium-gray)', marginTop: 8, textAlign: 'right' }}
-              >
-                REPRESENTACIÓN 30×30 · {Math.round(progress * TOTAL_CELLS * eda.densidad_matriz)} ACTIVAS
-              </p>
-            </div>
+          {/* Full-width MatrixHeatmap — 60% of scene */}
+          <div
+            style={{
+              width: '100%',
+              flex: 1,
+              minHeight: 0,
+              maxHeight: '55vh',
+            }}
+          >
+            <MatrixHeatmap progress={progress} />
           </div>
         </div>
       </div>
 
-      {/* Stats row — 4 card-medium */}
+      {/* Stats row — 4 card-medium BIGGER with CountUp display-size numbers */}
       <div
         style={{
           padding: 'var(--section-gap) var(--gutter)',
@@ -267,10 +230,16 @@ export function Scene02_Problem() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
             {stats.map(({ label, value, caption }) => (
               <Reveal key={label}>
-                <div className="card-medium" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="card-medium" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div
-                    className="t-display font-mono tnum"
-                    style={{ color: 'var(--color-dark-charcoal)', lineHeight: 1.1 }}
+                    style={{
+                      fontSize: 'clamp(28px,3.5vw,44px)',
+                      color: 'var(--color-dark-charcoal)',
+                      lineHeight: 1.05,
+                      fontFamily: 'var(--font-mono)',
+                      fontVariantNumeric: 'tabular-nums',
+                      fontWeight: 500,
+                    }}
                   >
                     {value}
                   </div>

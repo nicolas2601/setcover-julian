@@ -1,13 +1,79 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import SceneAnchor from '@/components/chrome/SceneAnchor';
 import { Reveal } from '@/components/motion/Reveal';
 import { results, fmtMoney, fmtTime, fmtPct } from '@/lib/results';
 
 const ComparisonBars = dynamic(() => import('@/components/charts/ComparisonBars'), { ssr: false });
-const TimeLogChart = dynamic(() => import('@/components/charts/TimeLogChart'), { ssr: false });
+
+// Graceful fallback for new charts from parallel agent
+const GapWaterfall = dynamic(
+  () => import('@/components/charts/GapWaterfall').catch(() =>
+    Promise.resolve({
+      default: () => (
+        <div style={{
+          width: '100%', height: 200,
+          background: 'var(--color-off-white)',
+          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px dashed var(--color-cool-gray)',
+        }}>
+          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>GapWaterfall — en construcción</span>
+        </div>
+      ),
+    })
+  ),
+  { ssr: false },
+);
+
+const PerformanceMatrix = dynamic(
+  () => import('@/components/charts/PerformanceMatrix').catch(() =>
+    Promise.resolve({
+      default: () => (
+        <div style={{
+          width: '100%', height: 200,
+          background: 'var(--color-off-white)',
+          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px dashed var(--color-cool-gray)',
+        }}>
+          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>PerformanceMatrix — en construcción</span>
+        </div>
+      ),
+    })
+  ),
+  { ssr: false },
+);
+
+// ─── CountUp ─────────────────────────────────────────────────────────────────
+function CountUp({ to, prefix = '', suffix = '', decimals = 0 }: { to: number; prefix?: string; suffix?: string; decimals?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const triggered = useRef(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const run = () => {
+      if (triggered.current) return; triggered.current = true;
+      if (prefersReduced) { el.textContent = prefix + to.toFixed(decimals) + suffix; return; }
+      const start = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / 1400, 1);
+        const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+        el.textContent = prefix + (to * ease).toFixed(decimals) + suffix;
+        if (p < 1) requestAnimationFrame(tick); else el.textContent = prefix + to.toFixed(decimals) + suffix;
+      };
+      requestAnimationFrame(tick);
+    };
+    const obs = new IntersectionObserver(
+      (e) => { if (e[0]?.isIntersecting) { run(); obs.disconnect(); } },
+      { threshold: 0.2 },
+    );
+    obs.observe(el);
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.95) run();
+    return () => obs.disconnect();
+  }, [to, prefix, suffix, decimals]);
+  return <span ref={ref} className="tnum font-mono">{prefix}{to.toFixed(decimals)}{suffix}</span>;
+}
 
 // ─── Method card data ─────────────────────────────────────────────────────────
 type MethodData = {
@@ -54,7 +120,7 @@ const METHODS_DATA: MethodData[] = [
     time: results.comparativa.tiempo_s[2] ?? 43.95,
     gap: fmtPct(results.ga_refinado.gap_vs_exacto_pct),
     guarantee: 'No',
-    isWinner: true, // THE COFOUNDER CARD
+    isWinner: true,
   },
   {
     key: 'ilp',
@@ -69,112 +135,86 @@ const METHODS_DATA: MethodData[] = [
   },
 ];
 
-// ─── Method card — elevated (3 normal) or cofounder (GA winner) ───────────────
+// ─── Compact method card — prominent CountUp metrics ─────────────────────────
 function MethodCard({ data }: { data: MethodData }) {
   if (data.isWinner) {
-    // .card-cofounder — THE one blue card on this page
     return (
       <div
         className="card-cofounder"
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
-          padding: 'clamp(28px,4vw,40px) clamp(20px,3vw,32px)',
+          gap: 14,
+          padding: 'clamp(20px,3vw,32px) clamp(16px,2.5vw,28px)',
         }}
       >
         <div>
-          <p className="t-caption tracking-meta" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>
+          <p className="t-caption tracking-meta" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>
             GANADOR PRÁCTICO
           </p>
           <h3
             className="font-serif t-h-sm"
-            style={{ color: 'var(--color-canvas-white)', margin: '0 0 4px', fontWeight: 400 }}
+            style={{ color: 'var(--color-canvas-white)', margin: '0 0 2px', fontWeight: 400 }}
           >
             {data.name}
           </h3>
-          <p className="t-caption" style={{ color: 'rgba(255,255,255,0.65)', margin: 0 }}>
-            {data.subtitle}
-          </p>
+          <p className="t-caption" style={{ color: 'rgba(255,255,255,0.55)', margin: 0 }}>{data.subtitle}</p>
         </div>
         <div className="div-hairline" style={{ borderColor: 'rgba(255,255,255,0.2)' }} />
-        <div>
-          <div
-            className="font-mono tnum"
-            style={{ fontSize: 'clamp(28px,3.5vw,44px)', color: 'var(--color-canvas-white)', fontWeight: 500, lineHeight: 1.1 }}
-          >
-            {fmtMoney(data.cost)}
-          </div>
+        <div
+          className="font-mono tnum"
+          style={{ fontSize: 'clamp(22px,2.8vw,36px)', color: 'var(--color-canvas-white)', fontWeight: 500, lineHeight: 1.1 }}
+        >
+          <CountUp to={data.cost} prefix="$" />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="t-caption" style={{ color: 'rgba(255,255,255,0.55)' }}>|S|</span>
-            <span className="t-caption font-mono tnum" style={{ color: 'var(--color-canvas-white)' }}>{data.size}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="t-caption" style={{ color: 'rgba(255,255,255,0.55)' }}>TIEMPO</span>
-            <span className="t-caption font-mono tnum" style={{ color: 'var(--color-canvas-white)' }}>{fmtTime(data.time)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="t-caption" style={{ color: 'rgba(255,255,255,0.55)' }}>GAP</span>
-            <span className="t-caption font-mono tnum" style={{ color: 'rgba(255,255,255,0.9)' }}>{data.gap}</span>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {[
+            { k: '|S|', v: data.size },
+            { k: 'TIEMPO', v: fmtTime(data.time) },
+            { k: 'GAP', v: data.gap },
+          ].map(({ k, v }) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span className="t-caption" style={{ color: 'rgba(255,255,255,0.5)' }}>{k}</span>
+              <span className="t-caption font-mono tnum" style={{ color: 'var(--color-canvas-white)' }}>{v}</span>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // .card-elevated — normal methods
   return (
-    <div
-      className="card-elevated"
-      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-    >
+    <div className="card-elevated" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
-        <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 6 }}>
+        <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 4 }}>
           {data.key.toUpperCase()}
         </p>
         <h3
           className="font-serif t-h-sm"
-          style={{ color: 'var(--color-dark-charcoal)', margin: '0 0 4px', fontWeight: 400 }}
+          style={{ color: 'var(--color-dark-charcoal)', margin: '0 0 2px', fontWeight: 400 }}
         >
           {data.name}
         </h3>
-        <p className="t-caption" style={{ color: 'var(--color-slate-gray)', margin: 0 }}>
-          {data.subtitle}
-        </p>
+        <p className="t-caption" style={{ color: 'var(--color-slate-gray)', margin: 0 }}>{data.subtitle}</p>
       </div>
       <div className="div-cool" />
-      <div>
-        <div
-          className="font-mono tnum"
-          style={{
-            fontSize: 'clamp(24px,3vw,36px)',
-            color: 'var(--color-dark-charcoal)',
-            fontWeight: 500,
-            lineHeight: 1.1,
-          }}
-        >
-          {fmtMoney(data.cost)}
-        </div>
+      <div
+        className="font-mono tnum"
+        style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: 'var(--color-dark-charcoal)', fontWeight: 500, lineHeight: 1.1 }}
+      >
+        <CountUp to={data.cost} prefix="$" />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>|S|</span>
-          <span className="t-caption font-mono tnum" style={{ color: 'var(--color-charcoal)' }}>{data.size}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>TIEMPO</span>
-          <span className="t-caption font-mono tnum" style={{ color: 'var(--color-charcoal)' }}>{fmtTime(data.time)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>GAP</span>
-          <span className="t-caption font-mono tnum" style={{ color: 'var(--color-dark-charcoal)', fontWeight: 500 }}>{data.gap}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>GARANTÍA</span>
-          <span className="t-caption font-mono tnum" style={{ color: 'var(--color-charcoal)' }}>{data.guarantee}</span>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {[
+          { k: 'TIEMPO', v: fmtTime(data.time) },
+          { k: 'GAP', v: data.gap },
+          { k: 'GARANTÍA', v: data.guarantee },
+        ].map(({ k, v }) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>{k}</span>
+            <span className="t-caption font-mono tnum" style={{ color: 'var(--color-charcoal)' }}>{v}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -201,23 +241,40 @@ export function Scene07_Comparison() {
             className="font-serif t-display-xl"
             style={{
               color: 'var(--color-dark-charcoal)',
-              margin: '0 0 clamp(40px,6vh,72px)',
+              margin: '0 0 clamp(16px,3vh,32px)',
               maxWidth: 900,
               fontWeight: 400,
               letterSpacing: '-0.025em',
             }}
           >
-            Cuatro métodos.<br />Una decisión.
+            Cuatro caminos. Un veredicto.
           </h2>
         </Reveal>
 
-        {/* 4-col method cards — ONE cofounder, THREE elevated */}
+        {/* 1-line intro */}
+        <Reveal delay={0.07}>
+          <p className="t-body" style={{ color: 'var(--color-slate-gray)', margin: '0 0 clamp(32px,5vh,64px)', maxWidth: 600 }}>
+            LP da la cota, Greedy la referencia rápida, ILP el óptimo garantizado, GA el balance práctico.
+          </p>
+        </Reveal>
+
+        {/* GapWaterfall — full-width above cards */}
+        <Reveal delay={0.08} variant="scale">
+          <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)', marginBottom: 'clamp(24px,4vh,48px)' }}>
+            <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
+              GAP RELATIVO AL ÓPTIMO ILP
+            </p>
+            <GapWaterfall />
+          </div>
+        </Reveal>
+
+        {/* 4-col method cards with CountUp */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: 16,
-            marginBottom: 'clamp(48px,7vh,96px)',
+            marginBottom: 'clamp(32px,5vh,64px)',
           }}
         >
           {METHODS_DATA.map((data) => (
@@ -227,31 +284,29 @@ export function Scene07_Comparison() {
           ))}
         </div>
 
-        <div className="div-cool" style={{ marginBottom: 'clamp(32px,5vh,64px)' }} />
+        <div className="div-cool" style={{ marginBottom: 'clamp(24px,4vh,48px)' }} />
 
-        {/* ComparisonBars + TimeLogChart side by side */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(24px,4vw,64px)', alignItems: 'start' }}>
-          <Reveal delay={0.05}>
-            <div>
-              <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
-                COMPARACIÓN DE COSTOS
-              </p>
-              <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)' }}>
-                <ComparisonBars />
-              </div>
+        {/* ComparisonBars full-width */}
+        <Reveal delay={0.05}>
+          <div>
+            <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
+              COMPARACIÓN DE COSTOS
+            </p>
+            <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)', marginBottom: 'clamp(24px,4vh,48px)' }}>
+              <ComparisonBars />
             </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <div>
-              <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
-                TIEMPOS DE EJECUCIÓN (LOG)
-              </p>
-              <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)' }}>
-                <TimeLogChart />
-              </div>
-            </div>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
+
+        {/* PerformanceMatrix — below comparison bars */}
+        <Reveal delay={0.1} variant="scale">
+          <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)' }}>
+            <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
+              MATRIZ DE RENDIMIENTO
+            </p>
+            <PerformanceMatrix />
+          </div>
+        </Reveal>
       </div>
     </SceneAnchor>
   );

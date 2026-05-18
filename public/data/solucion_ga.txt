@@ -1,0 +1,5 @@
+# Set Cover GA (refinado, seed=13)
+Costo total: 50546
+GAP vs óptimo: 0.844%
+Antenas seleccionadas (|S|=23, 1-indexed):
+19, 44, 45, 80, 175, 192, 196, 200, 213, 275, 277, 289, 354, 357, 358, 366, 401, 404, 421, 467, 473, 493, 496

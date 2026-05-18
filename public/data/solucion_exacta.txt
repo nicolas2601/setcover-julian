@@ -1,0 +1,4 @@
+# Set Cover óptimo
+Costo total: 50123
+Antenas seleccionadas (|S|=22, 1-indexed):
+14, 20, 29, 44, 45, 94, 175, 183, 206, 272, 277, 307, 334, 354, 401, 404, 432, 436, 438, 444, 467, 475

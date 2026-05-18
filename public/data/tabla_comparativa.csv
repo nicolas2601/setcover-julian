@@ -1,0 +1,5 @@
+Método,Tipo,Costo total,|S|,Tiempo (s),GAP vs óptimo (%)
+LP relajado,Cota inferior,27859.93,-,0.18,-44.417
+Greedy heurístico,Heurística constructiva,52063,23,0.0031,3.870
+Algoritmo Genético,Metaheurística poblacional,50546,23,43.95,0.844
+ILP (CBC),Exacto,50123,22,300.09,0.000

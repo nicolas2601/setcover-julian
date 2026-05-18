@@ -1,0 +1,91 @@
+{
+  "eda": {
+    "n_clientes": 500,
+    "n_antenas": 500,
+    "densidad_matriz": 0.099884,
+    "total_unos": 24971,
+    "min_antenas_por_cliente": 32,
+    "max_antenas_por_cliente": 70,
+    "promedio_antenas_por_cliente": 49.942,
+    "mediana_antenas_por_cliente": 50.0,
+    "min_clientes_por_antena": 33,
+    "max_clientes_por_antena": 66,
+    "promedio_clientes_por_antena": 49.942,
+    "mediana_clientes_por_antena": 50.0,
+    "antenas_inutiles_cubren_0": 0,
+    "clientes_huerfanos": 0,
+    "factible": true,
+    "costo_min": 2000.0,
+    "costo_max": 3998.0,
+    "costo_medio": 3033.642,
+    "costo_mediana": 3080.0,
+    "costo_std": 592.953277953668,
+    "costo_total_si_seleccionara_todas": 1516821.0,
+    "lb_minimo_por_cliente": 2313.0
+  },
+  "greedy": {
+    "sel_size": 23,
+    "costo": 52063.0,
+    "tiempo_s": 0.0030972957611083984
+  },
+  "exacto": {
+    "status": "Optimal",
+    "sel_size": 22,
+    "costo": 50123.0,
+    "tiempo_s": 300.09086751937866,
+    "lp_relax_obj": 27859.92657877791,
+    "gap_integralidad_pct": 79.91073974394756
+  },
+  "ga": {
+    "pop_size": 120,
+    "generations": 400,
+    "p_cross": 0.9,
+    "p_mut": 0.002,
+    "elitism": 2,
+    "sel_size": 23,
+    "costo": 52063.0,
+    "tiempo_s": 20.262234210968018,
+    "gap_vs_exacto_pct": 3.8704786225884322,
+    "corridas_5_semillas": [
+      50572.0,
+      50546.0,
+      50546.0,
+      52063.0,
+      51403.0
+    ],
+    "media_5_corridas": 51026.0,
+    "std_5_corridas": 613.9078106686703
+  },
+  "comparativa": {
+    "metodo": [
+      "Cota LP relajada",
+      "Greedy heurístico",
+      "GA (mejor de 5)",
+      "Exacto (CBC)"
+    ],
+    "costo": [
+      27859.92657877791,
+      52063.0,
+      50546.0,
+      50123.0
+    ],
+    "tiempo_s": [
+      0.18335914611816406,
+      0.0030972957611083984,
+      20.262234210968018,
+      300.09086751937866
+    ]
+  },
+  "ga_refinado": {
+    "pop_size": 150,
+    "generations": 500,
+    "p_cross": 0.9,
+    "p_mut": "adaptativa 3%→0.5%",
+    "elitism": 3,
+    "seed": 13,
+    "sel_size": 23,
+    "costo": 50546.0,
+    "tiempo_s": 43.9504930973053,
+    "gap_vs_exacto_pct": 0.8439239470901583
+  }
+}

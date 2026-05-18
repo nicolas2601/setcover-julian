@@ -113,6 +113,9 @@ function IngredientCard({
 export function Scene05_Genetic() {
   const outerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
+  // Only mount the R3F population when scene is near viewport — prevents the
+  // 1MB three.js + drei chunk from blocking initial page load.
+  const [r3fInView, setR3fInView] = useState(false);
   const { ga_refinado } = results;
 
   useGSAP(() => {
@@ -125,6 +128,23 @@ export function Scene05_Genetic() {
       onUpdate: (self) => setProgress(self.progress),
     });
   }, { scope: outerRef });
+
+  // IntersectionObserver — load WebGL only once user is 1 viewport away
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setR3fInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '100% 0px 100% 0px' }, // 1 viewport above + below
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <SceneAnchor
@@ -148,14 +168,16 @@ export function Scene05_Genetic() {
             alignItems: 'center',
           }}
         >
-          {/* WebGL population — 60% width covers right column naturally */}
+          {/* WebGL population — only mount when scene is near viewport */}
           <div
             aria-hidden="true"
             style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.5, pointerEvents: 'none' }}
           >
-            <div style={{ width: '100%', height: '100%' }}>
-              <GeneticPopulationR3F progress={progress} className="w-full h-full" />
-            </div>
+            {r3fInView && (
+              <div style={{ width: '100%', height: '100%' }}>
+                <GeneticPopulationR3F progress={progress} className="w-full h-full" />
+              </div>
+            )}
           </div>
 
           {/* LEFT — headline + live cost counter (no body paragraph) */}

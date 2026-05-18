@@ -2,7 +2,7 @@
   "eda": {
     "n_clientes": 500,
     "n_antenas": 500,
-    "densidad_matriz": 0.099884,
+    "densidad_matriz": 0.0999,
     "total_unos": 24971,
     "min_antenas_por_cliente": 32,
     "max_antenas_por_cliente": 70,
@@ -17,63 +17,69 @@
     "factible": true,
     "costo_min": 2000.0,
     "costo_max": 3998.0,
-    "costo_medio": 3033.642,
+    "costo_medio": 3034.0,
     "costo_mediana": 3080.0,
-    "costo_std": 592.953277953668,
+    "costo_std": 593.0,
     "costo_total_si_seleccionara_todas": 1516821.0,
     "lb_minimo_por_cliente": 2313.0
   },
   "greedy": {
     "sel_size": 23,
     "costo": 52063.0,
-    "tiempo_s": 0.0030972957611083984
+    "tiempo_s": 0.003
   },
   "exacto": {
-    "status": "Optimal",
+    "status": "IntegerFeasible",
     "sel_size": 22,
-    "costo": 50123.0,
-    "tiempo_s": 300.09086751937866,
-    "lp_relax_obj": 27859.92657877791,
-    "gap_integralidad_pct": 79.91073974394756
+    "costo": 49988.0,
+    "tiempo_s": 600.96,
+    "lp_relax_obj": 27859.93,
+    "gap_integralidad_pct": 79.43,
+    "gap_residual_pct": 0.386,
+    "nodos_bb": 22632
   },
   "ga": {
-    "pop_size": 120,
-    "generations": 400,
+    "pop_size": 150,
+    "generations": 500,
     "p_cross": 0.9,
-    "p_mut": 0.002,
-    "elitism": 2,
+    "p_mut": "adaptativa 3%→0.5%",
+    "elitism": 3,
     "sel_size": 23,
-    "costo": 52063.0,
-    "tiempo_s": 20.262234210968018,
-    "gap_vs_exacto_pct": 3.8704786225884322,
+    "costo": 50795.0,
+    "tiempo_s": 7.23,
+    "gap_vs_exacto_pct": 1.61,
+    "estancamiento_gen": 80,
+    "gen_convergencia": 95,
     "corridas_5_semillas": [
-      50572.0,
-      50546.0,
-      50546.0,
-      52063.0,
-      51403.0
+      50253.0,
+      50795.0,
+      50253.0,
+      50366.0,
+      50546.0
     ],
-    "media_5_corridas": 51026.0,
-    "std_5_corridas": 613.9078106686703
+    "media_5_corridas": 50443.0,
+    "std_5_corridas": 230.6,
+    "gap_medio_pct": 0.91,
+    "cv_pct": 0.46
   },
   "comparativa": {
     "metodo": [
       "Cota LP relajada",
       "Greedy heurístico",
       "GA (mejor de 5)",
-      "Exacto (CBC)"
+      "PLE — ILP (B&B)"
     ],
     "costo": [
-      27859.92657877791,
+      27859.93,
       52063.0,
-      50546.0,
-      50123.0
+      50795.0,
+      49988.0
     ],
     "tiempo_s": [
-      0.18335914611816406,
-      0.0030972957611083984,
-      20.262234210968018,
-      300.09086751937866
+      0.18,
+      0.003,
+      7.23,
+      600.96
     ]
   },
   "ga_refinado": {
@@ -83,9 +89,24 @@
     "p_mut": "adaptativa 3%→0.5%",
     "elitism": 3,
     "seed": 13,
+    "estancamiento_gen": 80,
     "sel_size": 23,
-    "costo": 50546.0,
-    "tiempo_s": 43.9504930973053,
-    "gap_vs_exacto_pct": 0.8439239470901583
+    "costo": 50795.0,
+    "tiempo_s": 7.23,
+    "gap_vs_exacto_pct": 1.61,
+    "corridas_5_semillas": [
+      50253.0,
+      50795.0,
+      50253.0,
+      50366.0,
+      50546.0
+    ],
+    "media_5_corridas": 50443.0,
+    "std_5_corridas": 230.6
+  },
+  "speedup": 83,
+  "authors": {
+    "nicolas": "Nicolás Moreno",
+    "julian": "Julian Arteaga"
   }
 }

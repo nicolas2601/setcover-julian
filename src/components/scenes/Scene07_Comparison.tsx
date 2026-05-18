@@ -88,50 +88,29 @@ type MethodData = {
   isWinner: boolean;
 };
 
+// Paper-aligned: SOLO GA vs ILP (Tabla III del paper final)
 const METHODS_DATA: MethodData[] = [
   {
-    key: 'lp',
-    name: 'LP Relajado',
-    subtitle: 'Cota inferior',
-    cost: results.comparativa.costo[0] ?? 27860,
-    size: '—',
-    time: results.comparativa.tiempo_s[0] ?? 0.183,
-    gap: '—',
-    guarantee: 'Cota inf.',
-    isWinner: false,
-  },
-  {
-    key: 'greedy',
-    name: 'Greedy',
-    subtitle: 'Heurístico rápido',
-    cost: results.comparativa.costo[1] ?? 52063,
-    size: '23',
-    time: results.comparativa.tiempo_s[1] ?? 0.003,
-    gap: fmtPct(((52063 - 50123) / 50123) * 100),
-    guarantee: 'No',
+    key: 'ilp',
+    name: 'PLE — ILP (B&B)',
+    subtitle: 'Branch-and-Bound · intlinprog',
+    cost: results.exacto.costo,           // $49,988
+    size: String(results.exacto.sel_size), // 22
+    time: results.exacto.tiempo_s,         // 600.96 s
+    gap: 'ref.',
+    guarantee: 'IntegerFeasible',
     isWinner: false,
   },
   {
     key: 'ga',
     name: 'Algoritmo Genético',
-    subtitle: 'Metaheurístico — ganador práctico',
-    cost: results.comparativa.costo[2] ?? 50546,
-    size: '23',
-    time: results.comparativa.tiempo_s[2] ?? 43.95,
-    gap: fmtPct(results.ga_refinado.gap_vs_exacto_pct),
-    guarantee: 'No',
+    subtitle: 'Metaheurística · parada anticipada',
+    cost: results.ga_refinado.costo,       // $50,795
+    size: String(results.ga_refinado.sel_size), // 23
+    time: results.ga_refinado.tiempo_s,    // 7.23 s
+    gap: fmtPct(results.ga_refinado.gap_vs_exacto_pct), // 1.61%
+    guarantee: '83× más rápido',
     isWinner: true,
-  },
-  {
-    key: 'ilp',
-    name: 'ILP Exacto',
-    subtitle: 'Branch & Bound',
-    cost: results.comparativa.costo[3] ?? 50123,
-    size: '22',
-    time: results.comparativa.tiempo_s[3] ?? 300.09,
-    gap: '0.00%',
-    guarantee: 'Sí',
-    isWinner: false,
   },
 ];
 
@@ -247,14 +226,15 @@ export function Scene07_Comparison() {
               letterSpacing: '-0.025em',
             }}
           >
-            Cuatro caminos. Un veredicto.
+            Exacto vs Genético.
           </h2>
         </Reveal>
 
         {/* 1-line intro */}
         <Reveal delay={0.07}>
-          <p className="t-body" style={{ color: 'var(--color-slate-gray)', margin: '0 0 clamp(32px,5vh,64px)', maxWidth: 600 }}>
-            LP da la cota, Greedy la referencia rápida, ILP el óptimo garantizado, GA el balance práctico.
+          <p className="t-body" style={{ color: 'var(--color-slate-gray)', margin: '0 0 clamp(32px,5vh,64px)', maxWidth: 640 }}>
+            El PLE encontró la mejor solución entera en 600 s; el GA llegó a 1.61 % de
+            esa solución en 7.23 s — <strong>83 veces más rápido</strong>.
           </p>
         </Reveal>
 
@@ -268,12 +248,12 @@ export function Scene07_Comparison() {
           </div>
         </Reveal>
 
-        {/* 4-col method cards with CountUp */}
+        {/* 2-col method cards — PLE (ILP) vs GA */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 16,
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 'clamp(16px,2vw,32px)',
             marginBottom: 'clamp(32px,5vh,64px)',
           }}
         >

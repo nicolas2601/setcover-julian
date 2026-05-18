@@ -12,10 +12,12 @@ export type ResultsShape = {
     costo_std: number; costo_total_si_seleccionara_todas: number; lb_minimo_por_cliente: number;
   };
   greedy: { sel_size: number; costo: number; tiempo_s: number };
-  exacto: { status: string; sel_size: number; costo: number; tiempo_s: number; lp_relax_obj: number; gap_integralidad_pct: number };
-  ga: { pop_size: number; generations: number; p_cross: number; p_mut: number; elitism: number; sel_size: number; costo: number; tiempo_s: number; gap_vs_exacto_pct: number; corridas_5_semillas?: number[]; media_5_corridas?: number; std_5_corridas?: number };
+  exacto: { status: string; sel_size: number; costo: number; tiempo_s: number; lp_relax_obj: number; gap_integralidad_pct: number; gap_residual_pct?: number; nodos_bb?: number };
+  ga: { pop_size: number; generations: number; p_cross: number; p_mut: number | string; elitism: number; sel_size: number; costo: number; tiempo_s: number; gap_vs_exacto_pct: number; corridas_5_semillas?: number[]; media_5_corridas?: number; std_5_corridas?: number; estancamiento_gen?: number; gen_convergencia?: number; gap_medio_pct?: number; cv_pct?: number };
   comparativa: { metodo: string[]; costo: number[]; tiempo_s: number[] };
-  ga_refinado: { pop_size: number; generations: number; p_cross: number; p_mut: string | number; elitism: number; seed?: number; sel_size: number; costo: number; tiempo_s: number; gap_vs_exacto_pct: number };
+  ga_refinado: { pop_size: number; generations: number; p_cross: number; p_mut: string | number; elitism: number; seed?: number; sel_size: number; costo: number; tiempo_s: number; gap_vs_exacto_pct: number; estancamiento_gen?: number; corridas_5_semillas?: number[]; media_5_corridas?: number; std_5_corridas?: number };
+  speedup?: number;
+  authors?: { nicolas: string; julian: string };
 };
 
 export const results = raw as ResultsShape;
@@ -33,18 +35,26 @@ export const fmtTime = (s: number) => {
 };
 export const fmtPct = (n: number, frac = 2) => `${n.toFixed(frac)}%`;
 
+// Canonical antenna selections (from FINAL paper)
 export const SELECTED_EXACT_ANTENNAS: number[] = [
-  14, 20, 29, 44, 45, 94, 175, 183, 206, 272, 277, 307, 334, 354, 401, 404,
-  432, 436, 438, 444, 467, 475,
+  14, 43, 44, 73, 114, 166, 196, 200, 210, 277, 308, 354, 357, 363, 401, 403,
+  405, 421, 436, 453, 456, 497,
 ];
 export const SELECTED_GA_ANTENNAS: number[] = [
-  19, 44, 45, 80, 175, 192, 196, 200, 213, 275, 277, 289, 354, 357, 358, 366,
-  401, 404, 421, 467, 473, 493, 496,
+  19, 29, 44, 45, 80, 94, 175, 196, 200, 277, 354, 357, 358, 366, 401, 404,
+  411, 421, 444, 457, 467, 473, 493,
 ];
 
+// Authors + key metrics
+export const AUTHORS = {
+  nicolas: "Nicolás Moreno",
+  julian: "Julian Arteaga",
+} as const;
+export const SPEEDUP = 83;
+
 export function syntheticConvergence(
-  generations = 500, finalBest = 50546, initialBest = 65800,
-  finalAvg = 51800, initialAvg = 78200,
+  generations = 95, finalBest = 50795, initialBest = 85000,
+  finalAvg = 52500, initialAvg = 95000,
 ): { gen: number; best: number; avg: number }[] {
   const series: { gen: number; best: number; avg: number }[] = [];
   for (let g = 0; g < generations; g++) {

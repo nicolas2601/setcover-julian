@@ -1,9 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import SceneAnchor from '@/components/chrome/SceneAnchor';
 
+// Lazy-load WebGL — kept inert until first idle window after mount so the
+// initial paint is the fast SVG fallback. Saves ~1MB of three.js + drei from
+// blocking LCP.
 const HeroWebGL = dynamic(() => import('@/components/visual/HeroWebGL'), {
   ssr: false,
   loading: () => <ConstellationFallback />,
@@ -74,26 +77,46 @@ function HeroStat({ value, label }: { value: string; label: string }) {
 // ─── Hero scene — DARK ────────────────────────────────────────────────────────
 export function Scene01_Hero() {
   const headlineRef = useRef<HTMLHeadingElement>(null);
+  // Defer WebGL until after first paint + browser idle. Initial render shows
+  // the SVG fallback (instant, ~3KB) so the hero is painted ASAP.
+  const [webglReady, setWebglReady] = useState(false);
 
   useEffect(() => {
+    // Animation
     const el = headlineRef.current;
-    if (!el) return;
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) return;
-    const words = el.querySelectorAll<HTMLSpanElement>('.hero-word');
-    words.forEach((w, i) => {
-      w.style.opacity = '0';
-      w.style.transform = 'translateY(40%)';
-      w.style.transition = `opacity 900ms cubic-bezier(0.32,0.72,0,1) ${100 + i * 80}ms, transform 900ms cubic-bezier(0.32,0.72,0,1) ${100 + i * 80}ms`;
-    });
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        words.forEach((w) => {
-          w.style.opacity = '1';
-          w.style.transform = 'none';
+    if (el) {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReduced) {
+        const words = el.querySelectorAll<HTMLSpanElement>('.hero-word');
+        words.forEach((w, i) => {
+          w.style.opacity = '0';
+          w.style.transform = 'translateY(40%)';
+          w.style.transition = `opacity 900ms cubic-bezier(0.32,0.72,0,1) ${100 + i * 80}ms, transform 900ms cubic-bezier(0.32,0.72,0,1) ${100 + i * 80}ms`;
         });
-      });
-    });
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            words.forEach((w) => {
+              w.style.opacity = '1';
+              w.style.transform = 'none';
+            });
+          });
+        });
+      }
+    }
+
+    // Defer WebGL mount to next idle window (or 800ms fallback)
+    type IdleHandle = number;
+    type IdleCallback = (cb: () => void, opts?: { timeout: number }) => IdleHandle;
+    const idle = (window as unknown as { requestIdleCallback?: IdleCallback }).requestIdleCallback;
+    if (idle) {
+      const id = idle(() => setWebglReady(true), { timeout: 1200 });
+      return () => {
+        const cancel = (window as unknown as { cancelIdleCallback?: (h: IdleHandle) => void }).cancelIdleCallback;
+        if (cancel) cancel(id);
+      };
+    }
+    const t = setTimeout(() => setWebglReady(true), 800);
+    return () => clearTimeout(t);
   }, []);
 
   const scrollTo = useCallback((id: string) => {
@@ -115,12 +138,24 @@ export function Scene01_Hero() {
         flexDirection: 'column',
       }}
     >
-      {/* WebGL background — full bleed */}
+      {/* WebGL background — instant SVG first, WebGL deferred to idle */}
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <noscript><ConstellationFallback /></noscript>
-        <div style={{ width: '100%', height: '100%' }}>
-          <HeroWebGL className="w-full h-full" />
-        </div>
+        <ConstellationFallback />
+        {webglReady && (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'absolute',
+              inset: 0,
+              animation: 'webglFadeIn 600ms cubic-bezier(0.32,0.72,0,1) forwards',
+              opacity: 0,
+            }}
+          >
+            <HeroWebGL className="w-full h-full" />
+            <style>{`@keyframes webglFadeIn { to { opacity: 1; } }`}</style>
+          </div>
+        )}
       </div>
 
       {/* Radial gradient overlay — center transparent → night-sky at edges */}

@@ -1,82 +1,74 @@
 'use client';
 
+/**
+ * ComparisonBars — Paper-aligned: SOLO GA vs ILP (PLE B&B).
+ * Cifras del paper final (resultados_setcover.txt):
+ *   ILP: $49,988 / 22 antenas / 600.96 s (IntegerFeasible)
+ *   GA:  $50,795 / 23 antenas / 7.23 s   (gap 1.61%, 83× más rápido)
+ */
+
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { results, fmtMoney, fmtPct } from '@/lib/results';
+import { results, fmtMoney, fmtTime, fmtPct } from '@/lib/results';
 import { tokens } from '@/lib/tokens';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type View = 'cost' | 'vs_lp' | 'vs_ilp';
+type View = 'cost' | 'time' | 'gap';
 
-const METHODS = ['LP', 'Greedy', 'GA', 'ILP'] as const;
+const METHODS = ['ILP', 'GA'] as const;
 type Method = typeof METHODS[number];
 
-const COSTS: Record<Method, number> = {
-  LP: results.comparativa.costo[0],
-  Greedy: results.comparativa.costo[1],
-  GA: results.comparativa.costo[2],
-  ILP: results.comparativa.costo[3],
-};
+const ILP_COST = results.exacto.costo;    // 49988
+const GA_COST  = results.ga_refinado.costo; // 50795
+const ILP_T    = results.exacto.tiempo_s;   // 600.96
+const GA_T     = results.ga_refinado.tiempo_s; // 7.23
+const GA_GAP   = results.ga_refinado.gap_vs_exacto_pct; // 1.61
 
-// GIC light theme — bars: mix of darks + cofounder-blue for GA winner
 const METHOD_COLORS: Record<Method, string> = {
-  LP:     tokens.color.lightGray,       // #b4b8b4 — muted
-  Greedy: tokens.color.slateGray,       // #444141 — secondary dark
-  GA:     tokens.color.cofounderBlue,   // #0081c0 — WINNER accent
-  ILP:    tokens.color.darkCharcoal,    // #171717 — exact reference
+  ILP: tokens.color.darkCharcoal,    // #171717 — reference
+  GA:  tokens.color.cofounderBlue,   // #0081c0 — winner
 };
 
 const METHOD_LABELS: Record<Method, string> = {
-  LP: 'Cota LP',
-  Greedy: 'Greedy',
-  GA: 'GA (best)',
-  ILP: 'Exacto ILP',
+  ILP: 'PLE — ILP (B&B)',
+  GA:  'Algoritmo Genético',
 };
 
-const PAD = { top: 48, right: 32, bottom: 56, left: 56 };
-const CHART_H = 340;
-const BAR_GAP = 0.3;
+const METHOD_SUBLABELS: Record<Method, string> = {
+  ILP: 'intlinprog · 600.96 s',
+  GA:  'parada anticipada · 7.23 s',
+};
 
-// GIC palette constants
+const PAD = { top: 56, right: 56, bottom: 72, left: 88 };
+const CHART_H = 380;
+const BAR_GAP = 0.35;
+
 const C = {
-  bg:        'transparent',
-  grid:      tokens.color.steelGray,     // #dee2de
-  tickLabel: tokens.color.mediumGray,    // #646464
-  baseline:  tokens.color.steelGray,     // #dee2de
-  xLabel:    tokens.color.darkCharcoal,  // #171717
-  pillBdr:   tokens.color.steelGray,     // inactive pill border
+  grid:      tokens.color.steelGray,
+  tickLabel: tokens.color.mediumGray,
+  baseline:  tokens.color.steelGray,
+  xLabel:    tokens.color.darkCharcoal,
+  pillBdr:   tokens.color.steelGray,
 } as const;
 
 function getValues(view: View): Record<Method, number> {
-  const lp = COSTS.LP;
-  const ilp = COSTS.ILP;
   switch (view) {
-    case 'vs_lp':
-      return {
-        LP: 0,
-        Greedy: ((COSTS.Greedy - lp) / lp) * 100,
-        GA: ((COSTS.GA - lp) / lp) * 100,
-        ILP: ((COSTS.ILP - lp) / lp) * 100,
-      };
-    case 'vs_ilp':
-      return {
-        LP: ((lp - ilp) / ilp) * 100,
-        Greedy: ((COSTS.Greedy - ilp) / ilp) * 100,
-        GA: ((COSTS.GA - ilp) / ilp) * 100,
-        ILP: 0,
-      };
+    case 'time':
+      return { ILP: ILP_T, GA: GA_T };
+    case 'gap':
+      return { ILP: 0, GA: GA_GAP };
     default:
-      return { ...COSTS };
+      return { ILP: ILP_COST, GA: GA_COST };
   }
 }
 
 function fmtVal(v: number, view: View) {
   if (view === 'cost') return fmtMoney(v);
-  if (!Number.isFinite(v)) return '—';
-  return fmtPct(v, 1);
+  if (view === 'time') return fmtTime(v);
+  return fmtPct(v, 2);
 }
 
 interface BarProps {
@@ -102,30 +94,20 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
 
   useEffect(() => {
     const el = barRef.current;
-    const lb = labelRef.current;
-    if (!el || !lb) return;
+    const lbl = labelRef.current;
+    if (!el) return;
     gsap.fromTo(
       el,
       { scaleY: 0, transformOrigin: 'bottom center' },
-      {
-        scaleY: 1,
-        transformOrigin: 'bottom center',
-        duration: 0.7,
-        ease: 'back.out(1.4)',
-        delay: METHODS.indexOf(method) * 0.1,
-      },
+      { scaleY: 1, duration: 1.0, ease: 'back.out(1.3)', delay: METHODS.indexOf(method) * 0.15 + 0.2 },
     );
-    gsap.fromTo(
-      lb,
-      { opacity: 0, y: 8 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        ease: 'power2.out',
-        delay: METHODS.indexOf(method) * 0.1 + 0.3,
-      },
-    );
+    if (lbl) {
+      gsap.fromTo(
+        lbl,
+        { opacity: 0, y: -8 },
+        { opacity: 1, y: 0, duration: 0.5, delay: METHODS.indexOf(method) * 0.15 + 0.9 },
+      );
+    }
   }, [animKey, method]);
 
   return (
@@ -137,19 +119,19 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
         width={barW.toFixed(2)}
         height={barH.toFixed(2)}
         fill={color}
-        opacity={isHighlighted ? 1 : 0.65}
-        rx="2"
-        ry="2"
+        opacity={isHighlighted ? 1 : 0.85}
+        rx="4"
+        ry="4"
       />
       <text
         ref={labelRef}
         x={(x + barW / 2).toFixed(2)}
-        y={(barY - 8).toFixed(2)}
+        y={(barY - 14).toFixed(2)}
         textAnchor="middle"
-        fill={color}
-        fontSize="11"
-        fontWeight={isHighlighted ? '600' : '400'}
-        style={{ fontVariantNumeric: 'tabular-nums' }}
+        fontFamily={tokens.font.mono}
+        fontSize="20"
+        fontWeight="600"
+        fill={isHighlighted ? tokens.color.cofounderBlue : tokens.color.darkCharcoal}
       >
         {fmtVal(val, view)}
       </text>
@@ -157,26 +139,57 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
   );
 }
 
-export default function ComparisonBars() {
+interface TogglePillProps {
+  view: View;
+  current: View;
+  label: string;
+  onClick: (v: View) => void;
+}
+
+function TogglePill({ view, current, label, onClick }: TogglePillProps) {
+  const active = view === current;
+  return (
+    <button
+      onClick={() => onClick(view)}
+      style={{
+        padding: '8px 18px',
+        borderRadius: 999,
+        border: `1px solid ${active ? tokens.color.cofounderBlue : C.pillBdr}`,
+        background: active ? tokens.color.cofounderBlue : 'transparent',
+        color: active ? tokens.color.canvasWhite : tokens.color.darkCharcoal,
+        fontFamily: tokens.font.family,
+        fontSize: 13,
+        fontWeight: 500,
+        letterSpacing: '-0.012em',
+        cursor: 'pointer',
+        transition: 'all 240ms cubic-bezier(0.32,0.72,0,1)',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function ComparisonBars() {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [width, setWidth] = useState(700);
+  const [width, setWidth] = useState(960);
   const [view, setView] = useState<View>('cost');
-  const [animKey, setAnimKey] = useState('init');
+  const [animKey, setAnimKey] = useState('initial');
 
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w && Number.isFinite(w)) setWidth(w);
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      setWidth(Math.max(420, w));
     });
     ro.observe(el);
-    setWidth(el.getBoundingClientRect().width || 700);
     return () => ro.disconnect();
   }, []);
 
-  const handleViewChange = useCallback((v: View) => {
+  useGSAP(() => { /* ensure GSAP context */ }, { scope: wrapRef });
+
+  const handleView = useCallback((v: View) => {
     setView(v);
     setAnimKey(`${v}-${Date.now()}`);
   }, []);
@@ -198,84 +211,52 @@ export default function ComparisonBars() {
   return (
     <div ref={wrapRef} style={{ width: '100%', fontFamily: tokens.font.family }}>
       {/* Toggle pills */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', paddingLeft: PAD.left }}>
-        {([['cost', 'COSTO'], ['vs_lp', '% vs LP'], ['vs_ilp', '% vs ILP']] as [View, string][]).map(
-          ([v, label]) => (
-            <button
-              key={v}
-              onClick={() => handleViewChange(v)}
-              style={{
-                background: view === v ? tokens.color.cofounderBlue : 'transparent',
-                border: `1px solid ${view === v ? tokens.color.cofounderBlue : C.pillBdr}`,
-                borderRadius: '22px',
-                padding: '6px 16px',
-                fontSize: '11px',
-                color: view === v ? tokens.color.canvasWhite : tokens.color.mediumGray,
-                cursor: 'pointer',
-                letterSpacing: '0.06em',
-                transition: 'border-color 0.2s, color 0.2s, background 0.2s',
-              }}
-            >
-              {label}
-            </button>
-          ),
-        )}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24, paddingLeft: PAD.left, flexWrap: 'wrap' }}>
+        <TogglePill view="cost" current={view} label="COSTO ($)" onClick={handleView} />
+        <TogglePill view="time" current={view} label="TIEMPO (s)" onClick={handleView} />
+        <TogglePill view="gap"  current={view} label="GAP (%)" onClick={handleView} />
       </div>
 
       <svg
-        ref={svgRef}
-        width={width}
+        width="100%"
         height={CHART_H}
-        style={{ display: 'block', overflow: 'visible' }}
-        aria-label="Comparación de métodos por costo"
+        viewBox={`0 0 ${width} ${CHART_H}`}
+        style={{ overflow: 'visible', display: 'block' }}
+        preserveAspectRatio="xMidYMid meet"
       >
-        {/* Y axis hairlines */}
+        {/* Y-axis ticks + gridlines */}
         {Array.from({ length: yTicks + 1 }, (_, i) => {
-          const v = i * yStep;
-          const y = (PAD.top + plotH - (v / maxVal) * plotH).toFixed(2);
+          const val = i * yStep;
+          const y = PAD.top + plotH - (val / maxVal) * plotH;
           return (
-            <g key={i}>
+            <g key={`yt-${i}`}>
               <line
-                x1={PAD.left.toFixed(2)}
+                x1={PAD.left}
+                x2={width - PAD.right}
                 y1={y}
-                x2={(PAD.left + plotW).toFixed(2)}
                 y2={y}
                 stroke={C.grid}
                 strokeWidth="1"
-                strokeDasharray="4 4"
-                opacity="0.6"
+                strokeDasharray={i === 0 ? undefined : '4 6'}
+                opacity={i === 0 ? 0.8 : 0.45}
               />
               <text
-                x={(PAD.left - 6).toFixed(2)}
-                y={y}
-                fill={C.tickLabel}
-                fontSize="11"
+                x={PAD.left - 12}
+                y={y + 4}
                 textAnchor="end"
-                dominantBaseline="middle"
+                fontFamily={tokens.font.mono}
+                fontSize="11"
+                fill={C.tickLabel}
               >
-                {view === 'cost'
-                  ? v >= 1000
-                    ? `${(v / 1000).toFixed(0)}k`
-                    : v.toFixed(0)
-                  : `${v.toFixed(0)}%`}
+                {fmtVal(val, view)}
               </text>
             </g>
           );
         })}
 
-        {/* Baseline */}
-        <line
-          x1={PAD.left.toFixed(2)}
-          y1={(PAD.top + plotH).toFixed(2)}
-          x2={(PAD.left + plotW).toFixed(2)}
-          y2={(PAD.top + plotH).toFixed(2)}
-          stroke={C.baseline}
-          strokeWidth="1"
-        />
-
-        {/* Bars */}
+        {/* Bars + value labels */}
         {METHODS.map((method, i) => {
-          const x = PAD.left + step * i + step * (BAR_GAP / 2);
+          const x = PAD.left + step * i + step * (BAR_GAP / 2) + step * BAR_GAP / 2;
           return (
             <Bar
               key={`${animKey}-${method}`}
@@ -291,26 +272,42 @@ export default function ComparisonBars() {
           );
         })}
 
-        {/* X labels */}
+        {/* X-axis labels (method name + subtitle) */}
         {METHODS.map((method, i) => {
           const x = PAD.left + step * i + step / 2;
-          const isWinner = method === 'GA';
+          const isHighlighted = method === 'GA';
           return (
-            <text
-              key={method}
-              x={x.toFixed(2)}
-              y={(PAD.top + plotH + 18).toFixed(2)}
-              textAnchor="middle"
-              fill={isWinner ? tokens.color.cofounderBlue : C.tickLabel}
-              fontSize="11"
-              fontWeight={isWinner ? '600' : '400'}
-              opacity={isWinner ? 1 : 0.75}
-            >
-              {METHOD_LABELS[method]}
-            </text>
+            <g key={`xl-${method}`}>
+              <text
+                x={x.toFixed(2)}
+                y={CHART_H - PAD.bottom + 24}
+                textAnchor="middle"
+                fontFamily={tokens.font.family}
+                fontSize="14"
+                fontWeight={isHighlighted ? '600' : '500'}
+                fill={isHighlighted ? tokens.color.cofounderBlue : C.xLabel}
+              >
+                {METHOD_LABELS[method]}
+              </text>
+              <text
+                x={x.toFixed(2)}
+                y={CHART_H - PAD.bottom + 42}
+                textAnchor="middle"
+                fontFamily={tokens.font.family}
+                fontSize="11"
+                fill={tokens.color.mediumGray}
+              >
+                {METHOD_SUBLABELS[method]}
+              </text>
+            </g>
           );
         })}
       </svg>
+
+      <div style={{ marginTop: 16, paddingLeft: PAD.left, fontSize: 12, color: tokens.color.mediumGray, fontFamily: tokens.font.family }}>
+        Fuente: <em>resultados_setcover.txt</em> · El GA es <strong style={{ color: tokens.color.cofounderBlue }}>83× más rápido</strong> con gap del 1.61 % vs ILP.
+      </div>
     </div>
   );
 }
+export default ComparisonBars;

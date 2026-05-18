@@ -6,44 +6,8 @@ import SceneAnchor from '@/components/chrome/SceneAnchor';
 import { Reveal } from '@/components/motion/Reveal';
 import { results, fmtMoney, fmtTime, fmtPct } from '@/lib/results';
 
-const ComparisonBars = dynamic(() => import('@/components/charts/ComparisonBars'), { ssr: false });
-
-// Graceful fallback for new charts from parallel agent
-const GapWaterfall = dynamic(
-  () => import('@/components/charts/GapWaterfall').catch(() =>
-    Promise.resolve({
-      default: () => (
-        <div style={{
-          width: '100%', height: 200,
-          background: 'var(--color-off-white)',
-          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px dashed var(--color-cool-gray)',
-        }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>GapWaterfall — en construcción</span>
-        </div>
-      ),
-    })
-  ),
-  { ssr: false },
-);
-
-const PerformanceMatrix = dynamic(
-  () => import('@/components/charts/PerformanceMatrix').catch(() =>
-    Promise.resolve({
-      default: () => (
-        <div style={{
-          width: '100%', height: 200,
-          background: 'var(--color-off-white)',
-          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px dashed var(--color-cool-gray)',
-        }}>
-          <span className="t-caption" style={{ color: 'var(--color-medium-gray)' }}>PerformanceMatrix — en construcción</span>
-        </div>
-      ),
-    })
-  ),
-  { ssr: false },
-);
+// ComparisonBars is the SOLE chart in this scene — paper-aligned GA vs ILP only
+const ComparisonBars = dynamic(() => import('@/components/charts/ComparisonBars').then((m) => ({ default: m.ComparisonBars })), { ssr: false });
 
 // ─── CountUp ─────────────────────────────────────────────────────────────────
 function CountUp({ to, prefix = '', suffix = '', decimals = 0 }: { to: number; prefix?: string; suffix?: string; decimals?: number }) {
@@ -238,16 +202,6 @@ export function Scene07_Comparison() {
           </p>
         </Reveal>
 
-        {/* GapWaterfall — full-width above cards */}
-        <Reveal delay={0.08} variant="scale">
-          <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)', marginBottom: 'clamp(24px,4vh,48px)' }}>
-            <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
-              GAP RELATIVO AL ÓPTIMO ILP
-            </p>
-            <GapWaterfall />
-          </div>
-        </Reveal>
-
         {/* 2-col method cards — PLE (ILP) vs GA */}
         <div
           style={{
@@ -278,15 +232,6 @@ export function Scene07_Comparison() {
           </div>
         </Reveal>
 
-        {/* PerformanceMatrix — below comparison bars */}
-        <Reveal delay={0.1} variant="scale">
-          <div className="card-elevated" style={{ padding: 'clamp(16px,2vw,28px)' }}>
-            <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 16 }}>
-              MATRIZ DE RENDIMIENTO
-            </p>
-            <PerformanceMatrix />
-          </div>
-        </Reveal>
       </div>
     </SceneAnchor>
   );

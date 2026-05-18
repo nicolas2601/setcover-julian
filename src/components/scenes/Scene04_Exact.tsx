@@ -237,12 +237,13 @@ export function Scene04_Exact() {
     });
   }, { scope: outerRef });
 
-  // 4 stat cards with BIG CountUp display — replaces body paragraph
+  // 4 stat cards aligned to paper:
+  //   $49,988 / 22 antenas / 600.96 s (timeout) / gap residual 0.386%
   const statCards = [
-    { label: 'COSTO ÓPTIMO', value: exacto.costo, prefix: '$', suffix: '', decimals: 0 },
+    { label: 'COSTO (MEJOR ENTERA)', value: exacto.costo, prefix: '$', suffix: '', decimals: 0 },
     { label: 'ANTENAS SELECCIONADAS', value: exacto.sel_size, prefix: '|S| = ', suffix: '', decimals: 0 },
-    { label: 'TIEMPO DE CÓMPUTO', value: exacto.tiempo_s / 60, prefix: '', suffix: ' min', decimals: 1 },
-    { label: 'GAP VS ÓPTIMO', value: 0, prefix: '', suffix: '.00%', decimals: 0 },
+    { label: 'TIEMPO DE CÓMPUTO', value: exacto.tiempo_s, prefix: '', suffix: ' s', decimals: 2 },
+    { label: 'GAP RESIDUAL', value: exacto.gap_residual_pct ?? 0.386, prefix: '', suffix: ' %', decimals: 3 },
   ];
 
   return (
@@ -278,13 +279,23 @@ export function Scene04_Exact() {
               className="font-serif t-display"
               style={{
                 color: 'var(--color-dark-charcoal)',
-                margin: '0 0 32px',
+                margin: '0 0 16px',
                 fontWeight: 400,
                 letterSpacing: '-0.022em',
               }}
             >
               El precio del óptimo.
             </h2>
+            <p
+              className="t-body-lg"
+              style={{
+                color: 'var(--color-medium-gray)',
+                margin: '0 0 32px',
+                maxWidth: '40ch',
+              }}
+            >
+              <strong style={{ color: 'var(--color-dark-charcoal)' }}>IntegerFeasible</strong> tras 10 min · {results.exacto.nodos_bb?.toLocaleString('es-CO') ?? '22,632'} nodos B&amp;B explorados · gap residual <strong>{(exacto.gap_residual_pct ?? 0.386).toFixed(3)} %</strong>.
+            </p>
 
             {/* BIG stat cards — replaced body paragraph */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -310,10 +321,7 @@ export function Scene04_Exact() {
                       lineHeight: 1.1,
                     }}
                   >
-                    {label === 'GAP VS ÓPTIMO'
-                      ? <span className="tnum font-mono">0.00%</span>
-                      : <CountUp to={value} prefix={prefix} suffix={suffix} decimals={decimals} />
-                    }
+                    <CountUp to={value} prefix={prefix} suffix={suffix} decimals={decimals} />
                   </div>
                   <div className="div-accent" />
                   <p className="t-caption" style={{ color: 'var(--color-medium-gray)', margin: 0, fontWeight: 500 }}>

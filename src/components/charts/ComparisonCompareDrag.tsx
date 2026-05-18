@@ -7,6 +7,26 @@ import { tokens } from '@/lib/tokens';
 const PANEL_HEIGHT = 400;
 const HANDLE_W = 2;
 
+// GIC palette
+const C = {
+  // Left panel: exact — dark charcoal bg
+  leftBg:       tokens.color.darkCharcoal,    // #171717
+  // Right panel: heuristic — off-white / canvas-white
+  rightBg:      tokens.color.offWhite,        // #fefffc
+  // Accents
+  leftAccent:   tokens.color.canvasWhite,     // text on dark panel
+  rightAccent:  tokens.color.cofounderBlue,   // #0081c0 — GA highlight
+  metaText:     tokens.color.mediumGray,      // #646464
+  handle:       tokens.color.cofounderBlue,   // divider line color
+  // Drag pill
+  pillBg:       tokens.color.cofounderBlue,
+  pillText:     tokens.color.canvasWhite,
+  pillBdr:      tokens.color.actionAzure,
+  // Dashed accent
+  dividerLeft:  tokens.color.slateGray,
+  dividerRight: tokens.color.steelGray,
+} as const;
+
 interface PanelData {
   label: string;
   method: string;
@@ -35,7 +55,6 @@ export default function ComparisonCompareDrag() {
   const [containerWidth, setContainerWidth] = useState(800);
   const x = useMotionValue(0); // offset from center
 
-  // Measure container width
   const measuredRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
     const ro = new ResizeObserver((entries) => {
@@ -46,7 +65,6 @@ export default function ComparisonCompareDrag() {
     setContainerWidth(node.getBoundingClientRect().width || 800);
   }, []);
 
-  // Clip width for left panel = containerWidth/2 + x
   const leftClip = useTransform(x, (v) => {
     const raw = containerWidth / 2 + v;
     return Math.max(40, Math.min(containerWidth - 40, raw));
@@ -70,7 +88,7 @@ export default function ComparisonCompareDrag() {
       }}
       aria-label="Comparación interactiva de métodos de optimización"
     >
-      {/* LEFT panel — full width, clipped */}
+      {/* LEFT panel — dark (Exact) */}
       <motion.div
         style={{
           position: 'absolute',
@@ -78,10 +96,6 @@ export default function ComparisonCompareDrag() {
           left: 0,
           width: containerWidth,
           height: PANEL_HEIGHT,
-          background: tokens.color.studioBlack,
-          clipPath: leftClip
-            ? undefined
-            : `inset(0 ${containerWidth / 2}px 0 0)`,
           overflow: 'hidden',
         }}
       >
@@ -102,7 +116,7 @@ export default function ComparisonCompareDrag() {
         </motion.div>
       </motion.div>
 
-      {/* RIGHT panel — full width, clipped from left */}
+      {/* RIGHT panel — light (GA) */}
       <motion.div
         style={{
           position: 'absolute',
@@ -127,9 +141,9 @@ export default function ComparisonCompareDrag() {
           left: 0,
           width: HANDLE_W,
           height: PANEL_HEIGHT,
-          background: tokens.color.warmCream,
+          background: C.handle,
           x: handleX,
-          opacity: 0.8,
+          opacity: 0.9,
           pointerEvents: 'none',
         }}
       />
@@ -159,16 +173,16 @@ export default function ComparisonCompareDrag() {
       >
         <div
           style={{
-            background: tokens.color.burntSienna,
-            color: tokens.color.warmCream,
+            background: C.pillBg,
+            color: C.pillText,
             borderRadius: '36px',
             padding: '8px 14px',
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 500,
             letterSpacing: '0.08em',
             whiteSpace: 'nowrap',
-            border: `1px solid ${tokens.color.warmCream}`,
-            boxShadow: 'none',
+            border: `1px solid ${C.pillBdr}`,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
           }}
         >
           DRAG
@@ -186,8 +200,11 @@ function PanelContent({
   width: number;
 }) {
   const isLeft = data.side === 'left';
-  const bg = isLeft ? tokens.color.studioBlack : tokens.color.darkCork;
-  const accentColor = isLeft ? tokens.color.burntSienna : tokens.color.warmCream;
+  // Left = dark panel (exact), Right = light panel (GA)
+  const bg = isLeft ? C.leftBg : C.rightBg;
+  const accentColor = isLeft ? C.leftAccent : C.rightAccent;
+  const methodColor = isLeft ? tokens.color.lightGray : tokens.color.mediumGray;
+  const dividerColor = isLeft ? C.dividerLeft : C.dividerRight;
 
   return (
     <div
@@ -206,8 +223,8 @@ function PanelContent({
       {/* Method badge */}
       <span
         style={{
-          fontSize: '10px',
-          color: tokens.color.greyBrown,
+          fontSize: '11px',
+          color: methodColor,
           letterSpacing: '0.12em',
           marginBottom: '12px',
           textTransform: 'uppercase',
@@ -225,6 +242,7 @@ function PanelContent({
           lineHeight: 0.9,
           marginBottom: '16px',
           fontVariantNumeric: 'tabular-nums',
+          letterSpacing: '-0.02em',
         }}
       >
         {data.cost}
@@ -234,8 +252,8 @@ function PanelContent({
       <span
         style={{
           fontSize: '14px',
-          color: tokens.color.warmCream,
-          opacity: 0.6,
+          color: isLeft ? tokens.color.lightGray : C.metaText,
+          opacity: 0.75,
           marginBottom: '24px',
         }}
       >
@@ -248,7 +266,7 @@ function PanelContent({
           padding: '6px 16px',
           border: `1px solid ${accentColor}`,
           borderRadius: '22px',
-          fontSize: '10px',
+          fontSize: '11px',
           color: accentColor,
           letterSpacing: '0.1em',
         }}
@@ -262,7 +280,7 @@ function PanelContent({
           marginTop: '28px',
           width: '60px',
           height: '1px',
-          borderTop: `1px dashed ${tokens.color.corkShadow}`,
+          borderTop: `1px dashed ${dividerColor}`,
         }}
       />
     </div>

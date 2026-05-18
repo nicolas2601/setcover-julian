@@ -21,40 +21,36 @@ const TAKEAWAYS = [
   },
 ];
 
+// ─── Scene 09 — LIGHT ────────────────────────────────────────────────────────
 export function Scene09_Conclusions() {
   return (
-    <SceneAnchor id="conclusiones" n={9} ariaLabel="Conclusiones — tres lecciones del proyecto" style={{ background: 'var(--color-studio-black)' }}>
+    <SceneAnchor
+      id="conclusiones"
+      n={9}
+      ariaLabel="Conclusiones — tres lecciones del proyecto"
+      style={{ background: 'var(--color-canvas-white)' }}
+    >
       <div className="container-max" style={{ padding: 'var(--section-gap) var(--gutter)' }}>
         <Reveal>
-          <p className="t-meta" style={{ color: 'var(--color-grey-brown)', marginBottom: 32 }}>09 · CONCLUSIONES</p>
+          <p className="t-caption tracking-meta" style={{ color: 'var(--color-medium-gray)', marginBottom: 32 }}>
+            09 · CONCLUSIONES
+          </p>
         </Reveal>
 
+        {/* Centered display headline */}
         <Reveal delay={0.05}>
           <h2
-            className="t-display-xl"
+            className="font-serif t-display-xl"
             style={{
-              color: 'var(--color-warm-cream)',
+              color: 'var(--color-dark-charcoal)',
               margin: '0 0 clamp(48px,8vh,112px)',
-              maxWidth: 1100,
-              lineHeight: 0.92,
+              fontWeight: 400,
+              letterSpacing: '-0.025em',
+              textAlign: 'center',
+              lineHeight: 0.96,
             }}
           >
-            <span style={{ display: 'block' }}>Tres&nbsp;lecciones.</span>
-            <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.04em' }}>
-              <span>Un&nbsp;problema&nbsp;de&nbsp;2</span>
-              <span
-                style={{
-                  fontSize: '0.42em',
-                  lineHeight: 1,
-                  color: 'var(--color-burnt-sienna)',
-                  marginTop: '0.04em',
-                  fontWeight: 500,
-                }}
-              >
-                500
-              </span>
-              <span>.</span>
-            </span>
+            Tres lecciones.
           </h2>
         </Reveal>
 
@@ -62,22 +58,52 @@ export function Scene09_Conclusions() {
         <div>
           {TAKEAWAYS.map((t, i) => (
             <Reveal key={t.numeral} delay={i * 0.06}>
-              <div style={{ position: 'relative', padding: 'clamp(40px,6vh,80px) 0', borderBottom: '1px dashed var(--color-cork-shadow)', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(32px,5vw,80px)', alignItems: 'start' }}>
-                {/* HUGE ghost numeral */}
+              <div
+                style={{
+                  position: 'relative',
+                  padding: 'clamp(40px,6vh,80px) 0',
+                  borderBottom: '1px solid var(--color-cool-gray)',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: 'clamp(32px,5vw,80px)',
+                  alignItems: 'start',
+                }}
+              >
+                {/* HUGE ghost serif numeral */}
                 <div
                   aria-hidden="true"
-                  className="t-display-2xl"
-                  style={{ color: 'color-mix(in srgb, var(--color-warm-cream) 6%, transparent)', lineHeight: 0.82, userSelect: 'none', minWidth: '1.2ch' }}
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(64px,9vw,96px)',
+                    fontWeight: 400,
+                    lineHeight: 0.88,
+                    color: 'var(--color-cool-gray)',
+                    userSelect: 'none',
+                    minWidth: '1.2ch',
+                    letterSpacing: '-0.02em',
+                  }}
                 >
                   {t.numeral}
                 </div>
                 {/* Content */}
                 <div>
                   <div className="div-accent" style={{ marginBottom: 20 }} />
-                  <h3 className="t-h-lg" style={{ color: 'var(--color-warm-cream)', margin: '0 0 20px', maxWidth: 760 }}>
+                  <h3
+                    className="font-serif t-h-lg"
+                    style={{
+                      color: 'var(--color-dark-charcoal)',
+                      margin: '0 0 20px',
+                      maxWidth: 760,
+                      fontWeight: 400,
+                      letterSpacing: '-0.018em',
+                    }}
+                  >
                     {t.title}
                   </h3>
-                  <p className="t-body-lg" style={{ color: 'var(--color-grey-brown)', margin: 0, maxWidth: 680, lineHeight: 1.65 }}>
+                  <p
+                    className="t-body-lg"
+                    style={{ color: 'var(--color-charcoal)', margin: 0, maxWidth: 680, lineHeight: 1.7 }}
+                  >
                     {t.body}
                   </p>
                 </div>
@@ -87,17 +113,17 @@ export function Scene09_Conclusions() {
         </div>
 
         {/* CTA buttons */}
-        <div style={{ paddingTop: 'clamp(40px,6vh,80px)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ paddingTop: 'clamp(40px,6vh,80px)', display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
           <a
             href="#"
-            className="btn-pill"
+            className="btn-solid-dark"
             aria-label="Descargar código MATLAB"
           >
             DESCARGAR MATLAB
           </a>
           <a
             href="#"
-            className="btn-ghost"
+            className="btn-outlined-azure"
             aria-label="Ver documentación Overleaf"
           >
             VER OVERLEAF

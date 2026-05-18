@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useScroll, useTransform, motion, AnimatePresence } from 'framer-motion';
+import { SplitText } from '@/components/motion/SplitText';
 
 type NavEntry = { label: string; anchor: string };
+
 const NAV_ITEMS: NavEntry[] = [
   { label: 'INTRO',       anchor: 'hero' },
   { label: 'PROBLEMA',    anchor: 'problema' },
@@ -11,15 +13,14 @@ const NAV_ITEMS: NavEntry[] = [
   { label: 'MÉTODOS',     anchor: 'exacto' },
   { label: 'RESULTADOS',  anchor: 'comparacion' },
 ];
-type NavItem = string;
 
-/** Single-line magnetic nav item — clean, no overlapping reveals */
-function MagneticItem({
-  label,
+/** Single magnetic nav pill — GIC blurred pill style */
+function MagneticNavItem({
+  entry,
   active,
   onClick,
 }: {
-  label: string;
+  entry: NavEntry;
   active: boolean;
   onClick: () => void;
 }) {
@@ -28,16 +29,17 @@ function MagneticItem({
   const rafRef = useRef<number>(0);
   const targetRef = useRef({ x: 0, y: 0 });
 
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     targetRef.current = {
-      x: Math.max(-6, Math.min(6, (e.clientX - cx) * 0.25)),
-      y: Math.max(-4, Math.min(4, (e.clientY - cy) * 0.2)),
+      x: Math.max(-6, Math.min(6, (e.clientX - cx) * 0.22)),
+      y: Math.max(-4, Math.min(4, (e.clientY - cy) * 0.18)),
     };
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const tick = () => {
       posRef.current.x = lerp(posRef.current.x, targetRef.current.x, 0.18);
       posRef.current.y = lerp(posRef.current.y, targetRef.current.y, 0.18);
@@ -52,7 +54,6 @@ function MagneticItem({
 
   const handleMouseLeave = useCallback(() => {
     targetRef.current = { x: 0, y: 0 };
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const tick = () => {
       posRef.current.x = lerp(posRef.current.x, 0, 0.18);
       posRef.current.y = lerp(posRef.current.y, 0, 0.18);
@@ -78,38 +79,38 @@ function MagneticItem({
       onClick={onClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative"
-      aria-current={active ? 'true' : undefined}
+      aria-current={active ? 'page' : undefined}
       style={{
+        position: 'relative',
         background: 'none',
         border: 'none',
         cursor: 'pointer',
         padding: '6px 4px',
-        color: active ? 'var(--color-burnt-sienna)' : 'var(--color-warm-cream)',
-        opacity: active ? 1 : 0.7,
-        fontFamily: 'var(--font-jakarta)',
-        fontSize: '11px',
-        fontWeight: 500,
-        letterSpacing: '0.16em',
+        color: active ? 'var(--color-cofounder-blue)' : 'var(--color-dark-charcoal)',
+        fontFamily: 'var(--font-inter)',
+        fontSize: '13px',
+        fontWeight: 400,
+        letterSpacing: '-0.012em',
         textTransform: 'uppercase',
         whiteSpace: 'nowrap',
-        transition: 'color 240ms cubic-bezier(0.32,0.72,0,1), opacity 240ms',
+        transition: 'color 240ms var(--ease-default)',
         willChange: 'transform',
       }}
     >
-      {label}
+      {entry.label}
+      {/* Active underline */}
       <span
         aria-hidden="true"
         style={{
           position: 'absolute',
-          bottom: -1,
+          bottom: 2,
           left: 4,
           right: 4,
           height: '1px',
-          background: 'var(--color-burnt-sienna)',
+          background: 'var(--color-cofounder-blue)',
           transformOrigin: 'left center',
           transform: active ? 'scaleX(1)' : 'scaleX(0)',
-          transition: 'transform 380ms cubic-bezier(0.32,0.72,0,1)',
+          transition: 'transform 360ms var(--ease-default)',
         }}
       />
     </button>
@@ -117,54 +118,73 @@ function MagneticItem({
 }
 
 export function TopNav() {
-  const [activeItem, setActiveItem] = useState<NavItem>('INTRO');
+  const [activeAnchor, setActiveAnchor] = useState<string>('hero');
+  const [wordmarkReady, setWordmarkReady] = useState(false);
   const { scrollY } = useScroll();
-  const navBg = useTransform(scrollY, [0, 500], ['rgba(16,9,4,0)', 'rgba(16,9,4,0.88)']);
-  const navBlurRaw = useTransform(scrollY, [0, 500], [0, 1]);
-  const navBlur = useTransform(navBlurRaw, (v) => `blur(${(v * 14).toFixed(1)}px)`);
-  const borderOpacity = useTransform(scrollY, [0, 500], [0, 0.5]);
 
+  // Background transitions: transparent → semi-opaque white
+  const navBg = useTransform(
+    scrollY,
+    [0, 100],
+    ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.92)'],
+  );
+  const navBlur = useTransform(scrollY, [0, 100], [12, 12]);
+  const borderOpacity = useTransform(scrollY, [80, 120], [0, 1]);
+
+  // Active section via IntersectionObserver
   useEffect(() => {
-    const anchorToLabel = new Map(NAV_ITEMS.map((n) => [n.anchor, n.label] as const));
+    const anchorToEntry = new Map(NAV_ITEMS.map((n) => [n.anchor, n.anchor]));
     const sections = NAV_ITEMS.map((n) => document.getElementById(n.anchor));
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-            const label = anchorToLabel.get(entry.target.id);
-            if (label) setActiveItem(label);
+          if (entry.isIntersecting && entry.intersectionRatio > 0.25) {
+            const anchor = anchorToEntry.get(entry.target.id);
+            if (anchor) setActiveAnchor(anchor);
           }
         });
       },
-      { threshold: 0.3 },
+      { threshold: 0.25 },
     );
+
     sections.forEach((s) => s && observer.observe(s));
     return () => observer.disconnect();
+  }, []);
+
+  // Wordmark letter reveal on mount
+  useEffect(() => {
+    const t = setTimeout(() => setWordmarkReady(true), 80);
+    return () => clearTimeout(t);
   }, []);
 
   const scrollToSection = (entry: NavEntry) => {
     const el = document.getElementById(entry.anchor);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
-    setActiveItem(entry.label);
+    setActiveAnchor(entry.anchor);
   };
 
   return (
     <motion.header
-      style={{ backgroundColor: navBg, backdropFilter: navBlur }}
+      style={{ backgroundColor: navBg, backdropFilter: `blur(12px)`, WebkitBackdropFilter: `blur(12px)` }}
       className="fixed top-0 left-0 right-0 z-50"
       role="banner"
     >
+      {/* Bottom hairline — appears after scroll */}
       <motion.div
+        aria-hidden="true"
         style={{
           opacity: borderOpacity,
-          borderBottom: '1px solid var(--color-cork-shadow)',
           position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
+          height: '1px',
+          background: 'var(--color-steel-gray)',
           pointerEvents: 'none',
         }}
       />
+
       <nav
         aria-label="Navegación principal"
         style={{
@@ -172,11 +192,11 @@ export function TopNav() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 16,
-          padding: '16px var(--gutter)',
+          padding: '0 var(--gutter)',
           minHeight: 56,
         }}
       >
-        {/* Wordmark — clean single render */}
+        {/* LEFT — serif wordmark + caption */}
         <a
           href="#hero"
           onClick={(e) => {
@@ -188,54 +208,87 @@ export function TopNav() {
             alignItems: 'baseline',
             gap: 8,
             textDecoration: 'none',
-            color: 'var(--color-warm-cream)',
-            fontFamily: 'var(--font-jakarta)',
-            fontSize: '16px',
-            fontWeight: 500,
-            letterSpacing: '-0.005em',
             flexShrink: 0,
           }}
+          aria-label="SET COVER — Ir al inicio"
         >
-          SET&nbsp;COVER
+          <AnimatePresence>
+            {wordmarkReady ? (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                style={{
+                  fontFamily: 'var(--font-crimson), ui-serif, Georgia, serif',
+                  fontSize: '18px',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--color-dark-charcoal)',
+                  fontFeatureSettings: '"liga" 0',
+                }}
+              >
+                <SplitText
+                  text="SET COVER"
+                  as="span"
+                  delay={0}
+                  stagger={0.03}
+                  splitBy="chars"
+                  ariaLabel="SET COVER"
+                  className="font-serif"
+                />
+              </motion.span>
+            ) : (
+              <span
+                style={{
+                  fontFamily: 'var(--font-crimson), ui-serif, Georgia, serif',
+                  fontSize: '18px',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--color-dark-charcoal)',
+                }}
+              >
+                SET COVER
+              </span>
+            )}
+          </AnimatePresence>
           <sup
             style={{
-              fontSize: '9px',
-              letterSpacing: '0.14em',
-              color: 'var(--color-grey-brown)',
+              fontSize: '10px',
+              letterSpacing: '0.08em',
+              color: 'var(--color-medium-gray)',
               verticalAlign: 'super',
               lineHeight: 1,
               fontWeight: 400,
+              fontFamily: 'var(--font-inter)',
             }}
           >
-            [01 / 10]
+            [01&nbsp;/&nbsp;10]
           </sup>
         </a>
 
-        {/* Center — hidden under md */}
-        <div className="hidden md:flex" style={{ alignItems: 'center', gap: 28 }} role="list">
+        {/* CENTER — nav pills, hidden below md */}
+        <div
+          className="hidden md:flex"
+          role="list"
+          style={{ alignItems: 'center', gap: 20 }}
+        >
           {NAV_ITEMS.map((entry) => (
-            <div key={entry.label} role="listitem">
-              <MagneticItem
-                label={entry.label}
-                active={activeItem === entry.label}
+            <div key={entry.anchor} role="listitem">
+              <MagneticNavItem
+                entry={entry}
+                active={activeAnchor === entry.anchor}
                 onClick={() => scrollToSection(entry)}
               />
             </div>
           ))}
         </div>
 
-        {/* Right CTA */}
+        {/* RIGHT — outlined azure button */}
         <a
           href="/matlab/run_all.m"
           download
-          className="btn-ghost"
-          style={{
-            fontSize: '11px',
-            letterSpacing: '0.14em',
-            padding: '8px 16px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
+          className="btn-outlined-azure"
+          style={{ whiteSpace: 'nowrap', flexShrink: 0, fontSize: '13px' }}
         >
           DESCARGAR MATLAB
         </a>

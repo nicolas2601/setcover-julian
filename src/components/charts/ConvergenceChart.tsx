@@ -19,6 +19,21 @@ const X_TICKS = [100, 200, 300, 400, 500];
 const ILP_COST = 50123;
 const GREEDY_COST = 52063;
 
+// ── GIC light theme palette ───────────────────────────────────────────────────
+const C = {
+  bg:          'transparent',
+  axisSroke:   tokens.color.steelGray,       // #dee2de — hairline grid
+  tickLabel:   tokens.color.mediumGray,      // #646464
+  bestLine:    tokens.color.cofounderBlue,   // #0081c0 — primary accent
+  avgLine:     tokens.color.slateGray,       // #444141
+  refILP:      tokens.color.mediumGray,      // #646464
+  refGreedy:   tokens.color.lightGray,       // #b4b8b4
+  tooltipBg:   tokens.color.canvasWhite,     // #ffffff
+  tooltipBdr:  tokens.color.steelGray,       // #dee2de
+  tooltipText: tokens.color.darkCharcoal,    // #171717
+  scrubLine:   tokens.color.steelGray,       // #dee2de
+} as const;
+
 function toSVGY(v: number, h: number) {
   const plotH = h - PAD.top - PAD.bottom;
   return PAD.top + plotH - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * plotH;
@@ -150,9 +165,6 @@ export default function ConvergenceChart() {
         onMouseLeave={handleMouseLeave}
         aria-label="Curva de convergencia del algoritmo genético"
       >
-        {/* BG */}
-        <rect width={width} height={HEIGHT} fill={tokens.color.studioBlack} />
-
         {/* Y grid + ticks */}
         {Y_TICKS.map((v) => {
           const y = toSVGY(v, HEIGHT).toFixed(2);
@@ -163,15 +175,15 @@ export default function ConvergenceChart() {
                 y1={y}
                 x2={(width - PAD.right).toFixed(2)}
                 y2={y}
-                stroke={tokens.color.corkShadow}
+                stroke={C.axisSroke}
                 strokeWidth="1"
                 strokeDasharray="4 4"
               />
               <text
                 x={(PAD.left - 8).toFixed(2)}
                 y={y}
-                fill={tokens.color.greyBrown}
-                fontSize="10"
+                fill={C.tickLabel}
+                fontSize="11"
                 textAnchor="end"
                 dominantBaseline="middle"
               >
@@ -192,14 +204,14 @@ export default function ConvergenceChart() {
                 y1={yBottom}
                 x2={x}
                 y2={(parseFloat(yBottom) + 4).toFixed(2)}
-                stroke={tokens.color.corkShadow}
+                stroke={C.axisSroke}
                 strokeWidth="1"
               />
               <text
                 x={x}
                 y={(parseFloat(yBottom) + 14).toFixed(2)}
-                fill={tokens.color.greyBrown}
-                fontSize="10"
+                fill={C.tickLabel}
+                fontSize="11"
                 textAnchor="middle"
               >
                 {v}
@@ -214,7 +226,7 @@ export default function ConvergenceChart() {
           y1={(PAD.top + HEIGHT - PAD.top - PAD.bottom).toFixed(2)}
           x2={(width - PAD.right).toFixed(2)}
           y2={(PAD.top + HEIGHT - PAD.top - PAD.bottom).toFixed(2)}
-          stroke={tokens.color.corkShadow}
+          stroke={C.axisSroke}
           strokeWidth="1"
         />
 
@@ -224,16 +236,16 @@ export default function ConvergenceChart() {
           y1={ilpY.toFixed(2)}
           x2={(width - PAD.right).toFixed(2)}
           y2={ilpY.toFixed(2)}
-          stroke={tokens.color.burntSienna}
+          stroke={C.refILP}
           strokeWidth="1"
           strokeDasharray="6 4"
-          opacity="0.6"
+          opacity="0.7"
         />
         <text
           x={(width - PAD.right + 6).toFixed(2)}
           y={ilpY.toFixed(2)}
-          fill={tokens.color.burntSienna}
-          fontSize="10"
+          fill={C.refILP}
+          fontSize="11"
           dominantBaseline="middle"
         >
           ILP {fmtMoney(ILP_COST)}
@@ -245,38 +257,38 @@ export default function ConvergenceChart() {
           y1={greedyY.toFixed(2)}
           x2={(width - PAD.right).toFixed(2)}
           y2={greedyY.toFixed(2)}
-          stroke={tokens.color.greyBrown}
+          stroke={C.refGreedy}
           strokeWidth="1"
           strokeDasharray="6 4"
-          opacity="0.5"
+          opacity="0.6"
         />
         <text
           x={(width - PAD.right + 6).toFixed(2)}
           y={greedyY.toFixed(2)}
-          fill={tokens.color.greyBrown}
-          fontSize="10"
+          fill={C.refGreedy}
+          fontSize="11"
           dominantBaseline="middle"
         >
           Greedy {fmtMoney(GREEDY_COST)}
         </text>
 
-        {/* Avg path (dashed cream) */}
+        {/* Avg path (slate-gray dashed) */}
         <path
           ref={avgPathRef}
           d={avgD}
           fill="none"
-          stroke={tokens.color.warmCream}
-          strokeWidth="1"
+          stroke={C.avgLine}
+          strokeWidth="1.5"
           strokeDasharray="5 4"
-          opacity="0.5"
+          opacity="0.6"
         />
 
-        {/* Best path (burnt sienna) */}
+        {/* Best path (cofounder-blue) */}
         <path
           ref={bestPathRef}
           d={bestD}
           fill="none"
-          stroke={tokens.color.burntSienna}
+          stroke={C.bestLine}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -288,23 +300,23 @@ export default function ConvergenceChart() {
           y1={PAD.top.toFixed(2)}
           x2={scrubX.toFixed(2)}
           y2={(PAD.top + HEIGHT - PAD.top - PAD.bottom).toFixed(2)}
-          stroke={tokens.color.warmCream}
+          stroke={C.scrubLine}
           strokeWidth="1"
-          opacity="0.4"
+          opacity="0.5"
           strokeDasharray="3 3"
         />
         <circle
           cx={scrubX.toFixed(2)}
           cy={scrubBestY.toFixed(2)}
           r="4"
-          fill={tokens.color.burntSienna}
+          fill={C.bestLine}
         />
         <circle
           cx={scrubX.toFixed(2)}
           cy={scrubAvgY.toFixed(2)}
           r="3"
-          fill={tokens.color.warmCream}
-          opacity="0.6"
+          fill={C.avgLine}
+          opacity="0.7"
         />
 
         {/* Hover tooltip */}
@@ -315,42 +327,44 @@ export default function ConvergenceChart() {
               y1={PAD.top.toFixed(2)}
               x2={tooltip.x.toFixed(2)}
               y2={(PAD.top + HEIGHT - PAD.top - PAD.bottom).toFixed(2)}
-              stroke={tokens.color.warmCream}
+              stroke={C.scrubLine}
               strokeWidth="1"
-              opacity="0.3"
+              opacity="0.4"
             />
             <rect
               x={(tooltip.x + 8).toFixed(2)}
               y={(tooltip.y - 36).toFixed(2)}
-              width="110"
-              height="56"
+              width="120"
+              height="60"
               rx="4"
-              fill={tokens.color.darkCork}
-              stroke={tokens.color.corkShadow}
+              fill={C.tooltipBg}
+              stroke={C.tooltipBdr}
               strokeWidth="1"
+              style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.10)) drop-shadow(0 1px 2px rgba(0,0,0,0.08))' }}
             />
             <text
               x={(tooltip.x + 14).toFixed(2)}
               y={(tooltip.y - 22).toFixed(2)}
-              fill={tokens.color.greyBrown}
-              fontSize="10"
+              fill={C.tickLabel}
+              fontSize="11"
             >
               Gen {tooltip.gen}
             </text>
             <text
               x={(tooltip.x + 14).toFixed(2)}
               y={(tooltip.y - 8).toFixed(2)}
-              fill={tokens.color.burntSienna}
-              fontSize="10"
+              fill={C.bestLine}
+              fontSize="11"
+              fontWeight="500"
             >
               Mejor: {fmtMoney(tooltip.best)}
             </text>
             <text
               x={(tooltip.x + 14).toFixed(2)}
               y={(tooltip.y + 8).toFixed(2)}
-              fill={tokens.color.warmCream}
-              fontSize="10"
-              opacity="0.7"
+              fill={C.avgLine}
+              fontSize="11"
+              opacity="0.8"
             >
               Prom: {fmtMoney(tooltip.avg)}
             </text>
@@ -359,12 +373,12 @@ export default function ConvergenceChart() {
 
         {/* Legend */}
         <g transform={`translate(${PAD.left.toFixed(2)}, ${(PAD.top - 20).toFixed(2)})`}>
-          <line x1="0" y1="0" x2="18" y2="0" stroke={tokens.color.burntSienna} strokeWidth="2" />
-          <text x="22" y="0" fill={tokens.color.warmCream} fontSize="10" dominantBaseline="middle">
+          <line x1="0" y1="0" x2="18" y2="0" stroke={C.bestLine} strokeWidth="2" />
+          <text x="22" y="0" fill={tokens.color.darkCharcoal} fontSize="11" dominantBaseline="middle">
             Mejor individuo
           </text>
-          <line x1="100" y1="0" x2="118" y2="0" stroke={tokens.color.warmCream} strokeWidth="1" strokeDasharray="4 3" opacity="0.7" />
-          <text x="122" y="0" fill={tokens.color.warmCream} fontSize="10" dominantBaseline="middle" opacity="0.7">
+          <line x1="120" y1="0" x2="138" y2="0" stroke={C.avgLine} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.8" />
+          <text x="142" y="0" fill={C.avgLine} fontSize="11" dominantBaseline="middle" opacity="0.8">
             Promedio
           </text>
         </g>
@@ -379,7 +393,7 @@ export default function ConvergenceChart() {
           gap: '12px',
         }}
       >
-        <span style={{ fontSize: '10px', color: tokens.color.greyBrown, minWidth: '60px' }}>
+        <span style={{ fontSize: '11px', color: C.tickLabel, minWidth: '60px' }}>
           Gen {scrubData.gen}
         </span>
         <input
@@ -390,17 +404,18 @@ export default function ConvergenceChart() {
           onChange={(e) => setScrubGen(Number(e.target.value))}
           style={{
             flex: 1,
-            accentColor: tokens.color.burntSienna,
+            accentColor: tokens.color.cofounderBlue,
             cursor: 'pointer',
           }}
           aria-label="Navegar por generaciones"
         />
         <span
           style={{
-            fontSize: '10px',
-            color: tokens.color.warmCream,
+            fontSize: '11px',
+            color: tokens.color.darkCharcoal,
             minWidth: '80px',
             textAlign: 'right',
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {fmtMoney(scrubData.best)}
@@ -411,9 +426,9 @@ export default function ConvergenceChart() {
       <p
         style={{
           padding: `8px ${PAD.right}px 0 ${PAD.left}px`,
-          fontSize: '10px',
-          color: tokens.color.greyBrown,
-          lineHeight: 1.4,
+          fontSize: '11px',
+          color: C.tickLabel,
+          lineHeight: 1.5,
           margin: 0,
         }}
       >

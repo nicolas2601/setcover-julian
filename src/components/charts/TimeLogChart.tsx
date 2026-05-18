@@ -26,19 +26,29 @@ const LABELS: Record<Method, string> = {
   ILP: 'Exacto ILP',
 };
 
+// GIC light theme — bars: mix of darks + cofounder-blue for GA
 const COLORS: Record<Method, string> = {
-  LP: tokens.color.greyBrown,
-  Greedy: tokens.color.corkShadow,
-  GA: tokens.color.burntSienna,
-  ILP: tokens.color.warmCream,
+  LP:     tokens.color.lightGray,       // #b4b8b4
+  Greedy: tokens.color.slateGray,       // #444141
+  GA:     tokens.color.cofounderBlue,   // #0081c0 — winner accent
+  ILP:    tokens.color.darkCharcoal,    // #171717
 };
 
 const PAD = { top: 48, right: 64, bottom: 56, left: 68 };
 const CHART_H = 340;
 const BAR_GAP = 0.3;
 
-// Log ticks in seconds
 const LOG_TICKS = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+
+// GIC palette constants
+const C = {
+  grid:      tokens.color.steelGray,    // #dee2de
+  tickLabel: tokens.color.mediumGray,   // #646464
+  baseline:  tokens.color.steelGray,
+  annotLine: tokens.color.cofounderBlue,
+  annotText: tokens.color.mediumGray,
+  xLabel:    tokens.color.darkCharcoal,
+} as const;
 
 function logY(v: number, plotH: number): number {
   if (!Number.isFinite(v) || v <= 0) return plotH;
@@ -49,7 +59,6 @@ function logY(v: number, plotH: number): number {
 }
 
 function fmtTickLabel(v: number): string {
-  if (v < 0.001) return `${(v * 1000).toFixed(0)}ms`;
   if (v < 1) return `${(v * 1000).toFixed(0)}ms`;
   if (v < 60) return `${v}s`;
   return `${(v / 60).toFixed(0)}min`;
@@ -85,8 +94,6 @@ export default function TimeLogChart() {
     () => {
       barRefs.current.forEach((el, i) => {
         if (!el) return;
-        const originalHeight = parseFloat(el.getAttribute('data-h') ?? '0');
-        const originalY = parseFloat(el.getAttribute('data-y') ?? '0');
         gsap.set(el, {
           scaleY: 0,
           transformOrigin: `${(parseFloat(el.getAttribute('x') ?? '0') + barW / 2).toFixed(2)}px ${(PAD.top + plotH).toFixed(2)}px`,
@@ -109,7 +116,6 @@ export default function TimeLogChart() {
     { scope: wrapRef, dependencies: [width] },
   );
 
-  // ILP annotation
   const ilpIdx = METHODS.indexOf('ILP');
   const ilpX = PAD.left + step * ilpIdx + step * (BAR_GAP / 2);
   const ilpTime = TIMES.ILP;
@@ -117,7 +123,9 @@ export default function TimeLogChart() {
   const ilpBarTop = PAD.top + ilpLogY;
 
   const gaTime = TIMES.GA;
-  const ratio = ilpTime / gaTime;
+  const ratio = Number.isFinite(ilpTime) && Number.isFinite(gaTime) && gaTime > 0
+    ? ilpTime / gaTime
+    : null;
 
   return (
     <div ref={wrapRef} style={{ width: '100%', fontFamily: tokens.font.family }}>
@@ -127,8 +135,6 @@ export default function TimeLogChart() {
         style={{ display: 'block', overflow: 'visible' }}
         aria-label="Comparación de tiempos de ejecución en escala logarítmica"
       >
-        <rect width={width} height={CHART_H + 32} fill={tokens.color.studioBlack} />
-
         {/* Y axis hairlines at log ticks */}
         {LOG_TICKS.map((v) => {
           const lv = Math.log10(v);
@@ -141,16 +147,16 @@ export default function TimeLogChart() {
                 y1={y}
                 x2={(PAD.left + plotW).toFixed(2)}
                 y2={y}
-                stroke={tokens.color.corkShadow}
+                stroke={C.grid}
                 strokeWidth="1"
                 strokeDasharray="4 4"
-                opacity="0.5"
+                opacity="0.6"
               />
               <text
                 x={(PAD.left - 6).toFixed(2)}
                 y={y}
-                fill={tokens.color.greyBrown}
-                fontSize="9"
+                fill={C.tickLabel}
+                fontSize="11"
                 textAnchor="end"
                 dominantBaseline="middle"
               >
@@ -164,8 +170,8 @@ export default function TimeLogChart() {
         <text
           x={(PAD.left - 48).toFixed(2)}
           y={(PAD.top + plotH / 2).toFixed(2)}
-          fill={tokens.color.greyBrown}
-          fontSize="10"
+          fill={C.tickLabel}
+          fontSize="11"
           textAnchor="middle"
           transform={`rotate(-90, ${(PAD.left - 48).toFixed(2)}, ${(PAD.top + plotH / 2).toFixed(2)})`}
         >
@@ -178,7 +184,7 @@ export default function TimeLogChart() {
           y1={(PAD.top + plotH).toFixed(2)}
           x2={(PAD.left + plotW).toFixed(2)}
           y2={(PAD.top + plotH).toFixed(2)}
-          stroke={tokens.color.corkShadow}
+          stroke={C.baseline}
           strokeWidth="1"
         />
 
@@ -191,7 +197,7 @@ export default function TimeLogChart() {
           const bH = Math.max(4, normY * plotH);
           const bY = PAD.top + plotH - bH;
           const color = COLORS[method];
-          const isHighlight = method === 'GA' || method === 'ILP';
+          const isGA = method === 'GA';
 
           return (
             <g key={method}>
@@ -208,7 +214,7 @@ export default function TimeLogChart() {
                 width={barW.toFixed(2)}
                 height={bH.toFixed(2)}
                 fill={color}
-                opacity={isHighlight ? 1 : 0.6}
+                opacity={isGA ? 1 : 0.65}
                 rx="2"
                 ry="2"
               />
@@ -219,6 +225,7 @@ export default function TimeLogChart() {
                 textAnchor="middle"
                 fill={color}
                 fontSize="11"
+                fontWeight={isGA ? '600' : '400'}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
               >
                 {fmtTime(t)}
@@ -228,9 +235,10 @@ export default function TimeLogChart() {
                 x={(x + barW / 2).toFixed(2)}
                 y={(PAD.top + plotH + 18).toFixed(2)}
                 textAnchor="middle"
-                fill={tokens.color.warmCream}
+                fill={isGA ? tokens.color.cofounderBlue : C.tickLabel}
                 fontSize="11"
-                opacity={isHighlight ? 1 : 0.6}
+                fontWeight={isGA ? '600' : '400'}
+                opacity={isGA ? 1 : 0.75}
               >
                 {LABELS[method]}
               </text>
@@ -239,34 +247,34 @@ export default function TimeLogChart() {
         })}
 
         {/* ILP annotation arrow */}
-        {Number.isFinite(ratio) && (
+        {ratio !== null && Number.isFinite(ratio) && (
           <g>
-            {/* Arrow line from ILP bar going right */}
             <line
               x1={(ilpX + barW + 4).toFixed(2)}
               y1={(ilpBarTop + 12).toFixed(2)}
               x2={(ilpX + barW + 36).toFixed(2)}
               y2={(ilpBarTop + 12).toFixed(2)}
-              stroke={tokens.color.burntSienna}
+              stroke={C.annotLine}
               strokeWidth="1"
             />
             <polygon
               points={`${(ilpX + barW + 36).toFixed(2)},${(ilpBarTop + 9).toFixed(2)} ${(ilpX + barW + 42).toFixed(2)},${(ilpBarTop + 12).toFixed(2)} ${(ilpX + barW + 36).toFixed(2)},${(ilpBarTop + 15).toFixed(2)}`}
-              fill={tokens.color.burntSienna}
+              fill={C.annotLine}
             />
             <text
               x={(ilpX + barW + 46).toFixed(2)}
               y={(ilpBarTop + 8).toFixed(2)}
-              fill={tokens.color.burntSienna}
-              fontSize="10"
+              fill={C.annotLine}
+              fontSize="11"
+              fontWeight="500"
             >
               {fmtTime(ilpTime)}
             </text>
             <text
               x={(ilpX + barW + 46).toFixed(2)}
               y={(ilpBarTop + 22).toFixed(2)}
-              fill={tokens.color.greyBrown}
-              fontSize="9"
+              fill={C.annotText}
+              fontSize="10"
             >
               {ratio.toFixed(0)}× del GA
             </text>
@@ -277,10 +285,10 @@ export default function TimeLogChart() {
         <text
           x={(width - PAD.right).toFixed(2)}
           y={(PAD.top - 10).toFixed(2)}
-          fill={tokens.color.greyBrown}
-          fontSize="9"
+          fill={C.tickLabel}
+          fontSize="10"
           textAnchor="end"
-          opacity="0.7"
+          opacity="0.6"
         >
           escala logarítmica
         </text>

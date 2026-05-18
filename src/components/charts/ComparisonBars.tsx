@@ -21,11 +21,12 @@ const COSTS: Record<Method, number> = {
   ILP: results.comparativa.costo[3],
 };
 
+// GIC light theme — bars: mix of darks + cofounder-blue for GA winner
 const METHOD_COLORS: Record<Method, string> = {
-  LP: tokens.color.greyBrown,
-  Greedy: tokens.color.corkShadow,
-  GA: tokens.color.burntSienna,
-  ILP: tokens.color.warmCream,
+  LP:     tokens.color.lightGray,       // #b4b8b4 — muted
+  Greedy: tokens.color.slateGray,       // #444141 — secondary dark
+  GA:     tokens.color.cofounderBlue,   // #0081c0 — WINNER accent
+  ILP:    tokens.color.darkCharcoal,    // #171717 — exact reference
 };
 
 const METHOD_LABELS: Record<Method, string> = {
@@ -38,6 +39,16 @@ const METHOD_LABELS: Record<Method, string> = {
 const PAD = { top: 48, right: 32, bottom: 56, left: 56 };
 const CHART_H = 340;
 const BAR_GAP = 0.3;
+
+// GIC palette constants
+const C = {
+  bg:        'transparent',
+  grid:      tokens.color.steelGray,     // #dee2de
+  tickLabel: tokens.color.mediumGray,    // #646464
+  baseline:  tokens.color.steelGray,     // #dee2de
+  xLabel:    tokens.color.darkCharcoal,  // #171717
+  pillBdr:   tokens.color.steelGray,     // inactive pill border
+} as const;
 
 function getValues(view: View): Record<Method, number> {
   const lp = COSTS.LP;
@@ -83,7 +94,7 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
   const barRef = useRef<SVGRectElement>(null);
   const labelRef = useRef<SVGTextElement>(null);
   const color = METHOD_COLORS[method];
-  const isHighlighted = method === 'GA' || method === 'ILP';
+  const isHighlighted = method === 'GA';
 
   const normVal = maxVal > 0 && Number.isFinite(val) ? Math.abs(val) / maxVal : 0;
   const barH = Math.max(4, normVal * plotH);
@@ -126,7 +137,7 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
         width={barW.toFixed(2)}
         height={barH.toFixed(2)}
         fill={color}
-        opacity={isHighlighted ? 1 : 0.6}
+        opacity={isHighlighted ? 1 : 0.65}
         rx="2"
         ry="2"
       />
@@ -137,6 +148,7 @@ function Bar({ method, val, maxVal, x, barW, plotH, view, animKey }: BarProps) {
         textAnchor="middle"
         fill={color}
         fontSize="11"
+        fontWeight={isHighlighted ? '600' : '400'}
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {fmtVal(val, view)}
@@ -152,7 +164,6 @@ export default function ComparisonBars() {
   const [view, setView] = useState<View>('cost');
   const [animKey, setAnimKey] = useState('init');
 
-  // ResizeObserver
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -174,11 +185,11 @@ export default function ComparisonBars() {
   const allVals = Object.values(vals).filter(Number.isFinite);
   const maxVal = Math.max(...allVals.map(Math.abs), 1);
 
-  const plotW = width - PAD.left - PAD.right;
-  const plotH = CHART_H - PAD.top - PAD.bottom;
+  const plotW = Math.max(0, width - PAD.left - PAD.right);
+  const plotH = Math.max(0, CHART_H - PAD.top - PAD.bottom);
   const n = METHODS.length;
   const totalGap = BAR_GAP * (n + 1);
-  const barW = (plotW * (1 - totalGap)) / n;
+  const barW = Math.max(0, (plotW * (1 - totalGap)) / n);
   const step = plotW / n;
 
   const yTicks = 5;
@@ -194,15 +205,15 @@ export default function ComparisonBars() {
               key={v}
               onClick={() => handleViewChange(v)}
               style={{
-                background: 'transparent',
-                border: `1px solid ${view === v ? tokens.color.burntSienna : tokens.color.corkShadow}`,
+                background: view === v ? tokens.color.cofounderBlue : 'transparent',
+                border: `1px solid ${view === v ? tokens.color.cofounderBlue : C.pillBdr}`,
                 borderRadius: '22px',
                 padding: '6px 16px',
-                fontSize: '10px',
-                color: view === v ? tokens.color.burntSienna : tokens.color.greyBrown,
+                fontSize: '11px',
+                color: view === v ? tokens.color.canvasWhite : tokens.color.mediumGray,
                 cursor: 'pointer',
                 letterSpacing: '0.06em',
-                transition: 'border-color 0.2s, color 0.2s',
+                transition: 'border-color 0.2s, color 0.2s, background 0.2s',
               }}
             >
               {label}
@@ -218,8 +229,6 @@ export default function ComparisonBars() {
         style={{ display: 'block', overflow: 'visible' }}
         aria-label="Comparación de métodos por costo"
       >
-        <rect width={width} height={CHART_H} fill={tokens.color.studioBlack} />
-
         {/* Y axis hairlines */}
         {Array.from({ length: yTicks + 1 }, (_, i) => {
           const v = i * yStep;
@@ -231,15 +240,16 @@ export default function ComparisonBars() {
                 y1={y}
                 x2={(PAD.left + plotW).toFixed(2)}
                 y2={y}
-                stroke={tokens.color.corkShadow}
+                stroke={C.grid}
                 strokeWidth="1"
-                opacity="0.5"
+                strokeDasharray="4 4"
+                opacity="0.6"
               />
               <text
                 x={(PAD.left - 6).toFixed(2)}
                 y={y}
-                fill={tokens.color.greyBrown}
-                fontSize="9"
+                fill={C.tickLabel}
+                fontSize="11"
                 textAnchor="end"
                 dominantBaseline="middle"
               >
@@ -259,7 +269,7 @@ export default function ComparisonBars() {
           y1={(PAD.top + plotH).toFixed(2)}
           x2={(PAD.left + plotW).toFixed(2)}
           y2={(PAD.top + plotH).toFixed(2)}
-          stroke={tokens.color.corkShadow}
+          stroke={C.baseline}
           strokeWidth="1"
         />
 
@@ -284,15 +294,17 @@ export default function ComparisonBars() {
         {/* X labels */}
         {METHODS.map((method, i) => {
           const x = PAD.left + step * i + step / 2;
+          const isWinner = method === 'GA';
           return (
             <text
               key={method}
               x={x.toFixed(2)}
               y={(PAD.top + plotH + 18).toFixed(2)}
               textAnchor="middle"
-              fill={tokens.color.warmCream}
+              fill={isWinner ? tokens.color.cofounderBlue : C.tickLabel}
               fontSize="11"
-              opacity={method === 'GA' || method === 'ILP' ? 1 : 0.6}
+              fontWeight={isWinner ? '600' : '400'}
+              opacity={isWinner ? 1 : 0.75}
             >
               {METHOD_LABELS[method]}
             </text>

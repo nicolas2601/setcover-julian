@@ -79,16 +79,16 @@ export function CodeBlock({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 16px 8px 28px',
-          background: 'var(--color-deep-cork)',
-          borderBottom: '1px solid var(--color-cork-shadow)',
+          background: 'var(--color-ash-gray)',
+          borderBottom: '1px solid var(--color-steel-gray)',
         }}
       >
         {/* Filename caption */}
         <span
           className="t-caption"
           style={{
-            color: 'var(--color-grey-brown)',
-            fontFamily: 'var(--t-mono)',
+            color: 'var(--color-medium-gray)',
+            fontFamily: 'var(--font-mono)',
             letterSpacing: '0.04em',
           }}
         >
@@ -102,12 +102,12 @@ export function CodeBlock({
               fontSize: 10,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: 'var(--color-warm-cream)',
-              opacity: 0.5,
-              border: '1px solid color-mix(in srgb, var(--color-warm-cream) 20%, transparent)',
+              color: 'var(--color-medium-gray)',
+              opacity: 0.7,
+              border: '1px solid var(--color-steel-gray)',
               borderRadius: 999,
               padding: '2px 8px',
-              fontFamily: 'var(--t-mono)',
+              fontFamily: 'var(--font-mono)',
             }}
           >
             {language.toUpperCase()}
@@ -118,7 +118,7 @@ export function CodeBlock({
       </div>
 
       {/* Code area */}
-      <div style={{ display: 'flex', overflow: 'auto', background: 'var(--color-deep-cork)' }}>
+      <div style={{ display: 'flex', overflow: 'auto', background: 'var(--color-ash-gray)' }}>
         {/* Line gutter */}
         {showLineNumbers && (
           <div
@@ -126,14 +126,14 @@ export function CodeBlock({
             style={{
               flexShrink: 0,
               padding: '24px 12px 24px 16px',
-              borderRight: '1px solid var(--color-cork-shadow)',
+              borderRight: '1px solid var(--color-steel-gray)',
               textAlign: 'right',
               userSelect: 'none',
               lineHeight: 1.75,
               fontSize: '13.5px',
-              color: 'var(--color-grey-brown)',
-              fontFamily: 'var(--t-mono)',
-              opacity: 0.5,
+              color: 'var(--color-medium-gray)',
+              fontFamily: 'var(--font-mono)',
+              opacity: 0.6,
             }}
           >
             {Array.from({ length: lineCount }, (_, i) => (

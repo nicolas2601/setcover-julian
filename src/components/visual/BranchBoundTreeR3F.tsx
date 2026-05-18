@@ -28,37 +28,42 @@ interface EdgeDef {
   label: string;
 }
 
-// ─── Tree topology ────────────────────────────────────────────────────────────
+// GIC theme — this component may render on a light section (default) or dark
+// We expose both sets and let the optimal node ring use cofounder-blue
+const TC = {
+  // Normal nodes (light bg context)
+  nodeFill:         tokens.color.canvasWhite,    // #ffffff
+  nodeStroke:       tokens.color.steelGray,      // #dee2de
+  nodeText:         tokens.color.darkCharcoal,   // #171717
+  // Pruned nodes
+  prunedStroke:     tokens.color.lightGray,      // #b4b8b4
+  prunedText:       tokens.color.lightGray,      // #b4b8b4
+  prunedStrikethrough: tokens.color.lightGray,   // strikethrough medium-gray
+  // Optimal node
+  optimalStroke:    tokens.color.cofounderBlue,  // #0081c0
+  optimalText:      tokens.color.cofounderBlue,  // #0081c0
+  optimalRing:      tokens.color.cofounderBlue,  // pulsing ring
+  // Edges
+  edgeStroke:       tokens.color.steelGray,      // #dee2de
+} as const;
 
-// SVG canvas
+// ─── SVG canvas ──────────────────────────────────────────────────────────────
+
 const W = 780;
 const H = 440;
 
 const NODES: NodeDef[] = [
-  // Level 0 — root
-  { id: 'root', x: 390, y: 48, label: 'LP relax', sublabel: '$27,860', level: 0 },
-
-  // Level 1
-  { id: 'l1a', x: 180, y: 148, label: 'x₂ = 0', sublabel: '$31,200', level: 1 },
-  { id: 'l1b', x: 600, y: 148, label: 'x₂ = 1', sublabel: '$29,450', level: 1 },
-
-  // Level 2
-  { id: 'l2a', x: 90,  y: 248, label: 'x₅ = 0', sublabel: '$38,100', level: 2 },
-  { id: 'l2b', x: 280, y: 248, label: 'x₅ = 1', sublabel: '$35,750', pruned: true, level: 2 },
-  { id: 'l2c', x: 490, y: 248, label: 'x₁ = 0', sublabel: '$41,300', level: 2 },
-  { id: 'l2d', x: 680, y: 248, label: 'x₁ = 1', sublabel: '$44,800', level: 2 },
-
-  // Level 3
-  { id: 'l3a', x: 45,  y: 360, label: 'x₇ = 0', sublabel: '$46,200', pruned: true, level: 3 },
-  { id: 'l3b', x: 145, y: 360, label: 'x₇ = 1', sublabel: '$48,500', level: 3 },
-  { id: 'l3c', x: 580, y: 360, label: 'x₃ = 0', sublabel: '$47,900', level: 3 },
-  {
-    id: 'l3d', x: 695, y: 360,
-    label: 'ÓPTIMO ENTERO',
-    sublabel: '$50,123 · 22 ANT.',
-    optimal: true,
-    level: 3,
-  },
+  { id: 'root', x: 390, y: 48,  label: 'LP relax',       sublabel: '$27,860', level: 0 },
+  { id: 'l1a',  x: 180, y: 148, label: 'x₂ = 0',         sublabel: '$31,200', level: 1 },
+  { id: 'l1b',  x: 600, y: 148, label: 'x₂ = 1',         sublabel: '$29,450', level: 1 },
+  { id: 'l2a',  x: 90,  y: 248, label: 'x₅ = 0',         sublabel: '$38,100', level: 2 },
+  { id: 'l2b',  x: 280, y: 248, label: 'x₅ = 1',         sublabel: '$35,750', pruned: true, level: 2 },
+  { id: 'l2c',  x: 490, y: 248, label: 'x₁ = 0',         sublabel: '$41,300', level: 2 },
+  { id: 'l2d',  x: 680, y: 248, label: 'x₁ = 1',         sublabel: '$44,800', level: 2 },
+  { id: 'l3a',  x: 45,  y: 360, label: 'x₇ = 0',         sublabel: '$46,200', pruned: true, level: 3 },
+  { id: 'l3b',  x: 145, y: 360, label: 'x₇ = 1',         sublabel: '$48,500', level: 3 },
+  { id: 'l3c',  x: 580, y: 360, label: 'x₃ = 0',         sublabel: '$47,900', level: 3 },
+  { id: 'l3d',  x: 695, y: 360, label: 'ÓPTIMO ENTERO',   sublabel: '$50,123 · 22 ANT.', optimal: true, level: 3 },
 ];
 
 const EDGES: EdgeDef[] = [
@@ -91,7 +96,6 @@ function levelVisible(level: number, progress: number): boolean {
 }
 
 function edgeDrawLength(fromLevel: number, progress: number): number {
-  // Returns 0→1 draw progress for edges going FROM this level
   const threshold = fromLevel === 0 ? 0 : fromLevel === 1 ? 0.25 : fromLevel === 2 ? 0.5 : 0.75;
   const range = 0.25;
   return Math.min(1, Math.max(0, (progress - threshold) / range));
@@ -108,8 +112,10 @@ function Edge({ edge, progress }: { edge: EdgeDef; progress: number }) {
 
   const totalLen = Math.hypot(to.x - from.x, to.y - from.y);
   const drawn = draw * totalLen;
-  // dasharray trick: drawn length then a big gap
   const dashArray = `${drawn.toFixed(2)} ${(totalLen + 10).toFixed(2)}`;
+
+  // Pruned branch edges get lighter stroke
+  const isPrunedEdge = to.pruned;
 
   return (
     <line
@@ -117,11 +123,11 @@ function Edge({ edge, progress }: { edge: EdgeDef; progress: number }) {
       y1={(from.y + 22).toFixed(2)}
       x2={to.x.toFixed(2)}
       y2={(to.y - 22).toFixed(2)}
-      stroke={tokens.color.corkShadow}
+      stroke={isPrunedEdge ? TC.prunedStroke : TC.edgeStroke}
       strokeWidth="1.5"
       strokeDasharray={dashArray}
       strokeDashoffset="0"
-      opacity={0.7}
+      opacity={isPrunedEdge ? 0.4 : 0.65}
     />
   );
 }
@@ -152,36 +158,36 @@ function Node({
     : 0;
 
   const strokeColor = node.optimal
-    ? tokens.color.burntSienna
+    ? TC.optimalStroke
     : node.pruned
-    ? tokens.color.greyBrown
-    : tokens.color.corkShadow;
+    ? TC.prunedStroke
+    : TC.nodeStroke;
 
   const textColor = node.optimal
-    ? tokens.color.burntSienna
+    ? TC.optimalText
     : node.pruned
-    ? tokens.color.greyBrown
-    : tokens.color.warmCream;
+    ? TC.prunedText
+    : TC.nodeText;
 
   return (
     <g>
-      {/* Pulsing ring for optimal node */}
+      {/* Pulsing ring for optimal node — cofounder-blue */}
       {showOptimalRing && (
         <rect
-          x={((node.x - boxW / 2 - 6)).toFixed(2)}
-          y={((node.y - boxH / 2 - 6)).toFixed(2)}
+          x={(node.x - boxW / 2 - 6).toFixed(2)}
+          y={(node.y - boxH / 2 - 6).toFixed(2)}
           width={boxW + 12}
           height={boxH + 12}
           rx={rx + 4}
           ry={ry + 4}
           fill="none"
-          stroke={tokens.color.burntSienna}
+          stroke={TC.optimalRing}
           strokeWidth="2"
           opacity={(0.3 + 0.5 * ringPulse).toFixed(3)}
         />
       )}
 
-      {/* Box */}
+      {/* Box — canvas-white fill, colored stroke */}
       <rect
         x={bx}
         y={by}
@@ -189,10 +195,10 @@ function Node({
         height={boxH}
         rx={rx}
         ry={ry}
-        fill={tokens.color.studioBlack}
+        fill={TC.nodeFill}
         stroke={strokeColor}
         strokeWidth={node.optimal ? 1.5 : 1}
-        opacity="0.95"
+        opacity="0.97"
       />
 
       {/* Main label */}
@@ -203,7 +209,7 @@ function Node({
         dominantBaseline="middle"
         fill={textColor}
         fontSize={node.optimal ? 7.5 : 8.5}
-        fontFamily="var(--font-jakarta), ui-monospace, monospace"
+        fontFamily="var(--font-jetbrains), ui-monospace, monospace"
         fontWeight={node.optimal ? '500' : '400'}
         letterSpacing="0.08em"
       >
@@ -219,24 +225,24 @@ function Node({
           dominantBaseline="middle"
           fill={textColor}
           fontSize={node.optimal ? 7 : 7.5}
-          fontFamily="var(--font-jakarta), ui-monospace, monospace"
-          opacity="0.75"
+          fontFamily="var(--font-jetbrains), ui-monospace, monospace"
+          opacity={node.pruned ? 0.5 : 0.65}
           letterSpacing="0.06em"
         >
           {node.sublabel}
         </text>
       )}
 
-      {/* Strikethrough for pruned nodes */}
+      {/* Strikethrough for pruned nodes — medium-gray */}
       {showPruned && (
         <line
-          x1={((node.x - boxW / 2 + 6)).toFixed(2)}
+          x1={(node.x - boxW / 2 + 6).toFixed(2)}
           y1={node.y.toFixed(2)}
-          x2={((node.x + boxW / 2 - 6)).toFixed(2)}
+          x2={(node.x + boxW / 2 - 6).toFixed(2)}
           y2={node.y.toFixed(2)}
-          stroke={tokens.color.greyBrown}
+          stroke={TC.prunedStrikethrough}
           strokeWidth="1.5"
-          opacity="0.8"
+          opacity="0.7"
         />
       )}
     </g>
@@ -251,7 +257,6 @@ export default function BranchBoundTreeR3F({
 }: BranchBoundTreeR3FProps) {
   const clampedP = Math.min(1, Math.max(0, progress));
 
-  // useMemo to avoid recomputing node lookup on every render
   const visibleEdges = useMemo(
     () => EDGES.filter(e => edgeDrawLength(nodeById(e.from).level, clampedP) > 0),
     [clampedP],

@@ -18,6 +18,20 @@ interface PopulationProps {
   progress: number;
 }
 
+// GIC colors — this visual lives in a dark section (night-sky bg)
+const GC = {
+  // Population dots: action-azure → cofounder-blue gradient effect via two layers
+  dotNormal:  tokens.color.actionAzure,      // #41a1cf — general population
+  dotBest:    tokens.color.cofounderBlue,    // #0081c0 — high-fitness elites
+  // Cluster center markers — cofounder-blue with bloom
+  clusterMarker: tokens.color.cofounderBlue, // #0081c0 bloom
+  // Ambient light
+  ambientColor: tokens.color.actionAzure,    // cool blue ambient
+  pointLight:   tokens.color.cofounderBlue,  // #0081c0 key light
+  // HUD
+  hudColor:   '#ffffff',
+} as const;
+
 // ─── LCG ─────────────────────────────────────────────────────────────────────
 
 function lcgRand(seed: number): () => number {
@@ -49,7 +63,6 @@ function Population({ progress }: PopulationProps) {
     const best = new Uint8Array(count);
 
     for (let i = 0; i < count; i++) {
-      // Scattered initial positions in sphere of radius 2.5
       const theta = rand() * Math.PI * 2;
       const phi = rand() * Math.PI;
       const r = 1.5 + rand() * 1.0;
@@ -60,15 +73,14 @@ function Population({ progress }: PopulationProps) {
           r * Math.cos(phi),
         ),
       );
-      // Assign to cluster — best ~15% are "high fitness"
       clusterAss.push(Math.floor(rand() * CLUSTER_CENTERS.length));
+      // ~15% are high-fitness elites
       best[i] = rand() < 0.15 ? 1 : 0;
     }
 
     return { initialPositions: initPos, clusterAssignments: clusterAss, isBest: best };
   }, []);
 
-  // Eased progress for convergence
   const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
   useFrame(() => {
@@ -83,14 +95,12 @@ function Population({ progress }: PopulationProps) {
       const cIdx = clusterAssignments[i];
       const [cx, cy, cz] = CLUSTER_CENTERS[cIdx];
 
-      // Interpolate toward cluster center
       dummy.position.set(
         THREE.MathUtils.lerp(init.x, cx, easedP),
         THREE.MathUtils.lerp(init.y, cy, easedP),
         THREE.MathUtils.lerp(init.z, cz, easedP),
       );
 
-      // Scale pulsing for best members
       const pulse = isBest[i]
         ? 1 + 0.25 * Math.sin(Date.now() * 0.003 + i)
         : 1;
@@ -99,10 +109,10 @@ function Population({ progress }: PopulationProps) {
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Color: best → burntSienna, others → warmCream at 40% opacity
+      // Best elites: cofounder-blue; others: action-azure
       const color = isBest[i]
-        ? new THREE.Color(tokens.color.burntSienna)
-        : new THREE.Color(tokens.color.warmCream);
+        ? new THREE.Color(GC.dotBest)
+        : new THREE.Color(GC.dotNormal);
       mesh.setColorAt(i, color);
     }
 
@@ -135,9 +145,9 @@ function ClusterMarkers({ progress }: { progress: number }) {
         <mesh key={i} position={[x, y, z]}>
           <sphereGeometry args={[0.12, 16, 16]} />
           <meshStandardMaterial
-            color={tokens.color.burntSienna}
-            emissive={tokens.color.burntSienna}
-            emissiveIntensity={2.5}
+            color={GC.clusterMarker}
+            emissive={GC.clusterMarker}
+            emissiveIntensity={2.8}
             transparent
             opacity={opacity}
           />
@@ -160,11 +170,11 @@ function GenerationHUD({ progress }: { progress: number }) {
         top: '16px',
         right: '16px',
         pointerEvents: 'none',
-        fontFamily: 'var(--font-jakarta), ui-monospace, monospace',
+        fontFamily: 'var(--font-jetbrains), ui-monospace, monospace',
         fontSize: '10px',
         letterSpacing: '0.12em',
-        color: tokens.color.warmCream,
-        opacity: 0.7,
+        color: GC.hudColor,
+        opacity: 0.6,
         whiteSpace: 'nowrap',
       }}
       prepend
@@ -179,11 +189,11 @@ function GenerationHUD({ progress }: { progress: number }) {
 function Scene({ progress }: PopulationProps) {
   return (
     <>
-      <ambientLight intensity={0.4} color={tokens.color.warmCream} />
+      <ambientLight intensity={0.35} color={GC.ambientColor} />
       <pointLight
         position={[3, 3, 3]}
-        intensity={1.2}
-        color={tokens.color.burntSienna}
+        intensity={1.4}
+        color={GC.pointLight}
       />
       <Population progress={progress} />
       <ClusterMarkers progress={progress} />
@@ -197,8 +207,8 @@ function Scene({ progress }: PopulationProps) {
       />
       <EffectComposer>
         <Bloom
-          intensity={1.2}
-          luminanceThreshold={0.4}
+          intensity={1.4}
+          luminanceThreshold={0.35}
           luminanceSmoothing={0.8}
           mipmapBlur
         />

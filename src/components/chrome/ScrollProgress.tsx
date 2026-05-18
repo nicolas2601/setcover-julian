@@ -1,42 +1,40 @@
 'use client';
 
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useScroll, useSpring, motion } from 'framer-motion';
 
 /**
- * ScrollProgress — hairline 1px bar on the RIGHT edge.
- * Fill grows via scaleY driven by Framer useScroll yProgress.
- * Hidden under md breakpoint.
+ * ScrollProgress — 2px horizontal bar at top of viewport.
+ * Grows left-to-right as the page scrolls.
+ * Fill color: --color-cofounder-blue.
+ * Track is invisible (no background).
+ * z-index 50 — above TopNav (z-50) via same stacking layer, rendered before.
  */
 export function ScrollProgress() {
   const { scrollYProgress } = useScroll();
-  const scaleY = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  // Spring to smooth out the progress slightly
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 180,
+    damping: 28,
+    restDelta: 0.001,
+  });
 
   return (
-    <div
+    <motion.div
       aria-hidden="true"
-      className="hidden md:block"
       style={{
         position: 'fixed',
-        right: 0,
         top: 0,
-        width: '1px',
-        height: '100dvh',
-        background: 'var(--color-cork-shadow)',
-        zIndex: 40,
-        transformOrigin: 'top center',
+        left: 0,
+        right: 0,
+        height: '2px',
+        zIndex: 60,
+        transformOrigin: 'left center',
+        scaleX,
+        background: 'var(--color-cofounder-blue)',
         pointerEvents: 'none',
+        willChange: 'transform',
       }}
-    >
-      <motion.div
-        style={{
-          width: '1px',
-          height: '100%',
-          background: 'var(--color-burnt-sienna)',
-          transformOrigin: 'top',
-          scaleY,
-          willChange: 'transform',
-        }}
-      />
-    </div>
+    />
   );
 }

@@ -20,6 +20,13 @@ interface SceneProps {
   prefersReducedMotion: boolean;
 }
 
+// GIC hero colors — dark scene (night-sky bg provided by parent .dark-section)
+const HC = {
+  regularPoint:   '#ffffff',              // canvas-white — all unselected antennas
+  highlightPoint: tokens.color.cofounderBlue, // #0081c0 — 22 selected antennas
+  dotGrid:        tokens.color.steelGray, // #dee2de subtle floor grid
+} as const;
+
 // ─── LCG deterministic random (SSR-safe) ─────────────────────────────────────
 
 function lcgRand(seed: number): () => number {
@@ -36,25 +43,22 @@ function useAntennaPositions(count = 500) {
   return useMemo(() => {
     const rand = lcgRand(42);
     const positions = new Float32Array(count * 3);
-    const highlights = new Uint8Array(count); // 1 = selected
+    const highlights = new Uint8Array(count);
     const selectedSet = new Set(SELECTED_EXACT_ANTENNAS);
 
     for (let i = 0; i < count; i++) {
-      // Fibonacci sphere distribution → flattened on Y axis
       const phi = Math.acos(1 - 2 * (i + 0.5) / count);
       const theta = Math.PI * (1 + Math.sqrt(5)) * i;
       const radius = 2.8;
 
       positions[i * 3 + 0] = radius * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta) * 0.35; // flatten Y
+      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta) * 0.35;
       positions[i * 3 + 2] = radius * Math.cos(phi);
 
-      // Slightly randomize radius for organic feel
       const jitter = 0.15 * rand();
       positions[i * 3 + 0] *= 1 + jitter;
       positions[i * 3 + 2] *= 1 + jitter;
 
-      // Antenna IDs are 1-based in SELECTED_EXACT_ANTENNAS
       highlights[i] = selectedSet.has(i + 1) ? 1 : 0;
     }
 
@@ -91,9 +95,9 @@ function DotGrid() {
       </bufferGeometry>
       <pointsMaterial
         size={0.012}
-        color={tokens.color.corkShadow}
+        color={HC.dotGrid}
         transparent
-        opacity={0.06}
+        opacity={0.08}
         sizeAttenuation
       />
     </points>
@@ -106,7 +110,6 @@ function AntennaCloud({ prefersReducedMotion }: SceneProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { positions, highlights } = useAntennaPositions(500);
 
-  // Separate positions for highlighted vs regular
   const { highlightPos, regularPos } = useMemo(() => {
     const hPos: number[] = [];
     const rPos: number[] = [];
@@ -131,33 +134,29 @@ function AntennaCloud({ prefersReducedMotion }: SceneProps) {
   useFrame((_state, delta) => {
     if (prefersReducedMotion || !groupRef.current) return;
     clock.t += delta;
-
-    // Slow Y-axis rotation
     groupRef.current.rotation.y += delta * 0.06;
-
-    // Subtle float — sine on Y
     groupRef.current.position.y = Math.sin(clock.t * 0.3) * 0.05;
   });
 
   return (
     <group ref={groupRef}>
-      {/* Regular antennas */}
+      {/* Regular antennas — white, low opacity */}
       <Points positions={regularPos} stride={3} frustumCulled={false}>
         <PointMaterial
           size={0.022}
-          color={tokens.color.warmCream}
+          color={HC.regularPoint}
           transparent
-          opacity={0.35}
+          opacity={0.30}
           sizeAttenuation
           depthWrite={false}
         />
       </Points>
 
-      {/* Highlighted (selected) antennas */}
+      {/* Highlighted (selected) antennas — cofounder-blue bloom */}
       <Points positions={highlightPos} stride={3} frustumCulled={false}>
         <PointMaterial
-          size={0.048}
-          color={tokens.color.burntSienna}
+          size={0.052}
+          color={HC.highlightPoint}
           transparent
           opacity={1}
           sizeAttenuation
@@ -189,7 +188,6 @@ function CameraRig({ prefersReducedMotion }: SceneProps) {
   useFrame((_state, delta) => {
     if (prefersReducedMotion) return;
     const [mx, my] = mouse.current;
-    // Damp camera toward mouse offset — subtle parallax
     maath.easing.damp3(
       camera.position,
       [mx * 0.6, my * 0.3 + 0, 6],
@@ -212,8 +210,8 @@ function Scene({ prefersReducedMotion }: SceneProps) {
       <CameraRig prefersReducedMotion={prefersReducedMotion} />
       <EffectComposer>
         <Bloom
-          intensity={0.6}
-          luminanceThreshold={0.5}
+          intensity={0.45}
+          luminanceThreshold={0.55}
           luminanceSmoothing={0.9}
           mipmapBlur
         />
@@ -230,8 +228,6 @@ export default function HeroWebGL({ className, style }: HeroWebGLProps) {
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
 
-  // Adaptive DPR: detect GPU tier (basic check via renderer info unavailable
-  // before canvas mounts — we let R3F handle it via dpr prop range).
   return (
     <Canvas
       className={className}
